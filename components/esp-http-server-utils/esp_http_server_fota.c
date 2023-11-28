@@ -143,7 +143,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
 			return esp_http_upload_json_status(req,ESP_FAIL,bytes_written);
 		}
 		bytes_written+=recv;
-		ESP_LOGI(TAG,"firmware upload %d/%d bytes",bytes_written,binary_size);
+		ESP_LOGD(TAG,"firmware upload %d/%d bytes",bytes_written,binary_size);
 	}
 	free(buf);
 

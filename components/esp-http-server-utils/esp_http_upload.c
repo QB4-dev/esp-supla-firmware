@@ -158,12 +158,12 @@ int esp_http_upload_check_final_boundary(httpd_req_t *req, char *boundary, size_
 
 esp_err_t esp_http_upload_json_status(httpd_req_t *req, esp_err_t rc, int uploaded)
 {
-	cJSON *js = cJSON_CreateObject();
-	if(!js)
-		return ESP_ERR_NO_MEM;
+    char buf[32];
+    sprintf(buf,"%d",uploaded);
 
+	cJSON *js = cJSON_CreateObject();
 	cJSON_AddStringToObject(js,"result",esp_err_to_name(rc));
-	cJSON_AddNumberToObject(js,"bytes_uploaded",uploaded);
+	cJSON_AddStringToObject(js,"bytes_uploaded",buf);
 
 	char *js_txt = cJSON_Print(js);
 	cJSON_Delete(js);

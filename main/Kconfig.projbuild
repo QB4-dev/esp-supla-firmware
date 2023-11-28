@@ -1,4 +1,4 @@
-menu "WiFi Configuration"
+menu "Example Configuration"
 
     config ESP_WIFI_SSID
         string "WiFi SSID"
@@ -11,5 +11,17 @@ menu "WiFi Configuration"
         default "mypassword"
         help
             WiFi password (WPA or WPA2) for the example to use.
+
+    config SUPLA_EMAIL
+        string "SUPLA email address"
+        default "user@example.com"
+        help
+            SUPLA account email address for the example to use.
+
+    config SUPLA_SERVER
+        string "SUPLA server address"
+        default "svrX.supla.org"
+        help
+            SUPLA server address for the example to use.
 
 endmenu
