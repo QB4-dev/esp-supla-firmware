@@ -1,3 +1,19 @@
+menu "Board Select"
+	choice BOARD
+	prompt "Target board"
+            default BSP_ESP01_DIMMER
+            help
+                Select target board
+                
+	config BSP_ESP01_DIMMER
+	    bool "ESP-01 DIMMER"
+
+	config BSP_ESP01_PLUG_DHT
+	    bool "ESP-01 PLUG DHT"
+
+	endchoice
+endmenu
+
 menu "Example Configuration"
 
     config ESP_WIFI_SSID

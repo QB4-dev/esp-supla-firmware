@@ -1,9 +1,163 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Example</title>
-    </head>
-    <body>
-        <p>This is an example of a simple HTML page with one paragraph.</p>
-    </body>
+<html lang="en">
+<head>
+	<title>SUPLA web config</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<!--<link rel="stylesheet" href="supla.css"> -->
+	<style>
+		body{color:#606c76;font-family:'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;}
+	</style>
+</head>
+<body>
+<div class="container">
+	<div id="device">Loading ...</div><br>
+	<div id="supla">Loading ...</div>
+	<br>
+	<div id="net">Loading ...</div><br>
+	<div id="wifi">Loading ...</div>
+</div>
+
+<script>
+//const esp_url="http://192.168.100.16";
+//const esp_url="http://192.168.4.1";
+const esp_url="";
+
+function suplaStats(){
+	fetch(esp_url+"/supla")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('device');
+
+		function secToTime(e){
+			const h = Math.floor(e / 3600).toString().padStart(2,'0'),
+			m = Math.floor(e % 3600 / 60).toString().padStart(2,'0'),
+			s = Math.floor(e % 60).toString().padStart(2,'0');
+			return h + ':' + m + ':' + s;
+		}
+
+		let stats = `
+			<div class="container">
+				<strong>Device: ${js.data.name}</strong><br>
+				<small>software: ${js.data.software_ver}</small><br>
+				<small>state: ${js.data.state}</small><br>
+				<small>GUID: ${js.data.guid}</small><br>
+				<small>uptime: ${secToTime(js.data.uptime)}</small><br>
+				<small>connection uptime: ${secToTime(js.data.connection_uptime)}</small><br>
+			</div>`;
+
+		div.innerHTML = stats;
+		return setTimeout(suplaStats, 2000);
+	});
+}
+
+function netStats(){
+	fetch(esp_url+"/wifi")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('net');
+		let sta = js.data.sta;
+
+		let stats = `
+		<div class="container">
+			<strong>WiFi:</strong><br>
+			<small>
+				Status: ${sta.status}<br>`;
+		if(sta.connection)
+			stats += `
+				Network: ${sta.connection.ssid}<br>
+				authmode: ${sta.connection.authmode}<br>
+				RSSI: ${sta.connection.rssi} dB<br>`;
+
+		stats +=`
+				IP addr: ${sta.ip_info.ip}<br>
+				netmask: ${sta.ip_info.netmask}<br>
+				gateway: ${sta.ip_info.gw}
+			</small>
+		</div>`;
+
+		div.innerHTML = stats;
+		return setTimeout(netStats, 2000);
+	});
+}
+
+function getWiFiConfigForm(){
+	fetch(esp_url+"/wifi?action=get_config")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('wifi');
+
+		let html = `
+		<div class="container">
+		<form id="wifi-form" method="post">
+			<strong>WiFi config:</strong><br>
+			SSID<br>
+			<input type="text" name="ssid" value=${js.data.sta.ssid} style="max-width:300px"><br>
+			Password<br>
+			<input type="password" name="passwd" style="max-width:300px"><br>
+			<input type="submit" value="submit">
+		</form>
+		</div>`;
+
+		div.innerHTML = html;
+		const form = document.getElementById('wifi-form');
+		form.onsubmit = function(e){
+			e.preventDefault();
+			let data = decodeURIComponent(new URLSearchParams(new FormData(this)));
+
+			fetch(esp_url+"/wifi?action=connect",
+			{
+				method: "POST",
+				body: data
+			})
+			.then(r => r.json())
+			.then(js => { alert("WiFi config changed"); });
+		};
+	})
+}
+
+function getSuplaConfigForm(){
+	fetch(esp_url+"/supla?action=get_config")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('supla');
+
+		let html = `
+		<div class="container">
+		<form id="supla-form" method="post">
+			<strong>SUPLA config:</strong><br>
+			Email<br>
+			<input class=type="text" name="email" value=${js.data.email} style="max-width:300px"><br>
+			Server<br>
+			<input type="text" name="server" value=${js.data.server} style="max-width:300px"><br>
+			<input type="submit" value="submit">
+		</form>
+		</div>`;
+
+		div.innerHTML = html;
+		const form = document.getElementById('supla-form');
+		form.onsubmit = function(e){
+			e.preventDefault();
+			let data = decodeURIComponent(new URLSearchParams(new FormData(this)));
+
+			fetch(esp_url+"/supla?action=set_config",
+			{
+				method: "POST",
+				body: data
+			})
+			.then(r => r.json())
+			.then(js => { alert("SUPLA config changed"); });
+		};
+
+	})
+}
+
+suplaStats();
+netStats();
+getWiFiConfigForm();
+getSuplaConfigForm();
+
+</script>
+
+</body>
 </html>

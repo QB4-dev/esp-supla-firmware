@@ -16,50 +16,21 @@
 #include <esp_event_loop.h>
 #include <tcpip_adapter.h>
 
-#include <driver/gpio.h>
-
-#include <esp-supla.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include <string.h>
-
+#include "bsp/board.h"
+#include "wifi.h"
 #include "webserver.h"
 
-#include <ledc-channel.h>
-
 static const char *TAG="APP";
+
+static supla_dev_t *supla_dev;
 
 static struct supla_config supla_config = {
     .email = CONFIG_SUPLA_EMAIL,
     .server = CONFIG_SUPLA_SERVER
 };
-
-static supla_dev_t *supla_dev;
-static supla_channel_t *relay_channel;
-
-#define LED_PIN GPIO_NUM_2
-
-//RELAY
-int led_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
-{
-    TRelayChannel_Value *relay_val = (TRelayChannel_Value*)new_value->value;
-
-    supla_log(LOG_INFO,"Relay set value %d",relay_val->hi);
-    gpio_set_level(LED_PIN,!relay_val->hi);
-    return supla_channel_set_relay_value(ch,relay_val);
-}
-
-static supla_channel_config_t relay_channel_config = {
-    .type = SUPLA_CHANNELTYPE_RELAY,
-    .supported_functions = 0xFF,
-    .default_function = SUPLA_CHANNELFNC_LIGHTSWITCH,
-    .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
-    .on_set_value = led_set_value
-};
-
-
 
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -68,10 +39,10 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 
     switch(event->event_id) {
     case SYSTEM_EVENT_STA_START:
-        esp_wifi_connect();
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
         ESP_LOGI(TAG, "got ip:%s",ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+        supla_dev_start(supla_dev);
         break;
     case SYSTEM_EVENT_AP_STACONNECTED:
         ESP_LOGI(TAG, "station:"MACSTR" join, AID=%d",
@@ -100,34 +71,29 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-void wifi_setup(void)
+void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t state)
 {
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+    char ap_ssid[32];
+    supla_log(LOG_INFO,"state -> %s", supla_dev_state_str(state));
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    wifi_config_t wifi_config_ap = {
-        .ap = {
-            .ssid = "esp8266",
-            .ssid_len = strlen("esp8266"),
-            .password = "",
-            .max_connection = 4,
-            .authmode = WIFI_AUTH_OPEN
-        },
-    };
-
-    wifi_config_t wifi_config_sta = {
-        .sta = {
-            .ssid = "Dom",
-            .password = "12345678"
-        },
-    };
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    //ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config_ap));
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config_sta));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    switch(state){
+    case SUPLA_DEV_STATE_CONFIG:
+      supla_esp_generate_hostname(dev,ap_ssid,sizeof(ap_ssid));
+      wifi_set_access_point_mode(ap_ssid);
+      break;
+    case SUPLA_DEV_STATE_IDLE:
+      break;
+    case SUPLA_DEV_STATE_INIT:
+      break;
+    case SUPLA_DEV_STATE_CONNECTED:
+      break;
+    case SUPLA_DEV_STATE_REGISTERED:
+      break;
+    case SUPLA_DEV_STATE_ONLINE:
+      break;
+    default:
+      break;
+    }
 }
 
 static void supla_task(void *arg)
@@ -138,37 +104,38 @@ static void supla_task(void *arg)
         return;
     }
 
-    supla_channel_t *ledc_channel = supla_ledc_channel_create(GPIO_NUM_3,1000);
-    supla_dev_add_channel(dev,ledc_channel);
-
-    supla_dev_set_common_channel_state_callback(dev,supla_esp_get_wifi_state);
-    supla_dev_set_server_time_sync_callback(dev,supla_esp_server_time_sync);
-
     if(supla_dev_set_config(dev,&supla_config) != SUPLA_RESULT_TRUE){
         vTaskDelete(NULL);
         return;
     }
 
-    supla_dev_start(dev);
     while(1){
         supla_dev_iterate(dev);
         vTaskDelay(100 / portTICK_RATE_MS);
     }
 }
 
-
 void app_main()
 {
-    ESP_LOGI(TAG, "server gen demo");
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-
+    ESP_ERROR_CHECK(wifi_init(event_handler));
     ESP_ERROR_CHECK(supla_esp_nvs_config_init(&supla_config));
-    supla_dev = supla_dev_create("ESP-mini",NULL);
 
-    wifi_setup();
-    webserver_init();
+    supla_dev = supla_dev_create("SUPLA-DEV",NULL);
+    ESP_ERROR_CHECK(board_init(supla_dev));
+
+    supla_dev_set_name(supla_dev,bsp->id);
+    supla_dev_set_flags(supla_dev,SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
+    supla_dev_set_state_changed_callback(supla_dev,supla_dev_state_change_callback);
+    supla_dev_set_common_channel_state_callback(supla_dev,supla_esp_get_wifi_state);
+    supla_dev_set_server_time_sync_callback(supla_dev,supla_esp_server_time_sync);
+
+    webserver_init(&supla_dev);
+
+    wifi_set_station_mode();
+    //wifi_set_access_point_mode("ESP-AP");
 
     xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
     for (;;) {

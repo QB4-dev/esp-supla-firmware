@@ -16,7 +16,7 @@ static void handle_ota_failed_action(esp_ota_actions_t *ota_actions)
 		ota_actions->on_update_failed(ota_actions->arg);
 }
 
-esp_err_t app_info_handler(httpd_req_t *req)
+esp_err_t esp_httpd_app_info_handler(httpd_req_t *req)
 {
     const esp_app_desc_t *app_descr = esp_ota_get_app_description();
 

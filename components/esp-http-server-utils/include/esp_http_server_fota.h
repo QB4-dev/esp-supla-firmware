@@ -34,7 +34,7 @@ typedef struct {
  * @return
  *  - ESP_OK : On success, error number otherwise
  */
-esp_err_t app_info_handler(httpd_req_t *req);
+esp_err_t esp_httpd_app_info_handler(httpd_req_t *req);
 
 /**
  * @brief FOTA(Firmware Over The Air) update handler, should be configured like:

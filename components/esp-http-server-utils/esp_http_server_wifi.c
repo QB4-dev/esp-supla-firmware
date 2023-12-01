@@ -40,6 +40,7 @@ static cJSON *ap_record_to_json(wifi_ap_record_t *ap_info)
 	cJSON_AddStringToObject(js, "bssid",mac_buf);
 	cJSON_AddStringToObject(js, "ssid", (const char *)ap_info->ssid);
 	cJSON_AddNumberToObject(js, "rssi", (const double)ap_info->rssi);
+	cJSON_AddNumberToObject(js, "ch", ap_info->primary);
 	cJSON_AddStringToObject(js, "authmode",
 			ap_info->authmode == WIFI_AUTH_OPEN ? "OPEN" :
 			ap_info->authmode == WIFI_AUTH_WEP ? "WEP" :
@@ -142,22 +143,25 @@ static cJSON *wifi_scan_to_json(void)
 {
     uint16_t ap_num = DEFAULT_SCAN_LIST_SIZE;
     uint16_t ap_found = 0;
-
     wifi_ap_record_t ap_list[DEFAULT_SCAN_LIST_SIZE] = {0};
+    wifi_ap_record_t ap_info = {0};
+    bool connected;
+
+    connected = (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK);
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_start(NULL,true));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, ap_list));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_found));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
+    esp_wifi_scan_get_ap_records(&ap_num, ap_list);
+    esp_wifi_scan_get_ap_num(&ap_found);
+
+    if(connected)
+        ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
 
     ESP_LOGI(TAG, "Total APs scanned = %u", ap_found);
-
     cJSON* js = cJSON_CreateArray();
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_found); i++) {
-        ESP_LOGI(TAG, "\tSSID %s", ap_list[i].ssid);
-        ESP_LOGI(TAG, "\tRSSI %d", ap_list[i].rssi);
-        ESP_LOGI(TAG, "\tchannel %d\n", ap_list[i].primary);
+        ESP_LOGI(TAG, "\tSSID: %s \tch=%d rssi=%d",
+                ap_list[i].ssid, ap_list[i].primary, ap_list[i].rssi);
         cJSON_AddItemToArray(js, ap_record_to_json(&ap_list[i]));
     }
     return js;
@@ -208,7 +212,7 @@ static esp_err_t wifi_handle_connect_req(httpd_req_t *req)
 }
 
 
-esp_err_t wifi_httpd_handler(httpd_req_t *req)
+esp_err_t esp_httpd_wifi_handler(httpd_req_t *req)
 {
     CHECK_ARG(req);
 
@@ -226,13 +230,16 @@ esp_err_t wifi_httpd_handler(httpd_req_t *req)
         if (httpd_req_get_url_query_str(req, url_query, qlen) == ESP_OK) {
             if (httpd_query_key_value(url_query, "action", value, sizeof(value)) == ESP_OK) {
 
-                if(!strcmp(value,"connect")){
-                    wifi_handle_connect_req(req);
-                    cJSON_AddItemToObject(js,"data",wifi_info_to_json());
-                } else if(!strcmp(value,"get_config")){
+                if(!strcmp(value,"get_config")){
                     cJSON_AddItemToObject(js,"data",wifi_config_to_json());
                 } else if(!strcmp(value,"scan")){
                     cJSON_AddItemToObject(js,"data",wifi_scan_to_json());
+                } else if(!strcmp(value,"connect")){
+                    wifi_handle_connect_req(req);
+                    cJSON_AddItemToObject(js,"data",wifi_info_to_json());
+                } else if(!strcmp(value,"disconnect")){
+                    esp_wifi_disconnect();
+                    cJSON_AddItemToObject(js,"data",wifi_info_to_json());
                 }
             }
         }
