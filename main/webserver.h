@@ -11,6 +11,7 @@
 #include <esp_http_server.h>
 #include <esp-supla.h>
 
-esp_err_t webserver_init(supla_dev_t **dev);
+esp_err_t webserver_start(supla_dev_t **dev);
+esp_err_t webserver_stop(void);
 
 #endif /* MAIN_WEBSERVER_H_ */

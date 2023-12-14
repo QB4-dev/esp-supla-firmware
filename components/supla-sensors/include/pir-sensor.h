@@ -26,7 +26,7 @@ typedef void (*on_detect_calback_t)(input_event_t event,void *);
 struct pir_sensor_config {
 	gpio_num_t gpio;
 	unsigned int action_trigger_caps;
-	supla_channel_t *related_channel;
+	supla_channel_t **related_channel;
 	on_detect_calback_t on_detect_cb;
 	void *arg;
 };

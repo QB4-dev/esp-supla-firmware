@@ -99,7 +99,7 @@ supla_channel_t *supla_pir_sensor_create(struct pir_sensor_config *pir_sensor_co
 		.supported_functions = SUPLA_CHANNELFNC_ACTIONTRIGGER,
 		.default_function = SUPLA_CHANNELFNC_ACTIONTRIGGER,
 		.action_trigger_caps = pir_sensor_conf->action_trigger_caps,
-		.action_trigger_related_channel = &pir_sensor_conf->related_channel
+		.action_trigger_related_channel = pir_sensor_conf->related_channel
 	};
 	gpio_config_t gpio_conf = {
 		.pin_bit_mask = (1 << pir_sensor_conf->gpio),

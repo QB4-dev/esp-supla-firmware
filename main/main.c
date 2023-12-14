@@ -71,18 +71,32 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t state)
+static void on_config_init(void)
 {
     char ap_ssid[32];
+    supla_esp_generate_hostname(supla_dev,ap_ssid,sizeof(ap_ssid));
+    wifi_set_access_point_mode(ap_ssid);
+    supla_dev_enter_config_mode(supla_dev);
+    webserver_start(&supla_dev);
+}
+
+static void on_config_exit(void)
+{
+    webserver_stop();
+    supla_dev_exit_config_mode(supla_dev);
+    wifi_set_station_mode();
+}
+
+static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t state)
+{
     supla_log(LOG_INFO,"state -> %s", supla_dev_state_str(state));
 
     switch(state){
     case SUPLA_DEV_STATE_CONFIG:
-      supla_esp_generate_hostname(dev,ap_ssid,sizeof(ap_ssid));
-      wifi_set_access_point_mode(ap_ssid);
-      break;
+        board_config_mode_init();
+        break;
     case SUPLA_DEV_STATE_IDLE:
-      break;
+        break;
     case SUPLA_DEV_STATE_INIT:
       break;
     case SUPLA_DEV_STATE_CONNECTED:
@@ -124,6 +138,8 @@ void app_main()
     ESP_ERROR_CHECK(supla_esp_nvs_config_init(&supla_config));
 
     supla_dev = supla_dev_create("SUPLA-DEV",NULL);
+    board_set_config_init_callback(on_config_init);
+    board_set_config_exit_callback(on_config_exit);
     ESP_ERROR_CHECK(board_init(supla_dev));
 
     supla_dev_set_name(supla_dev,bsp->id);
@@ -131,15 +147,8 @@ void app_main()
     supla_dev_set_state_changed_callback(supla_dev,supla_dev_state_change_callback);
     supla_dev_set_common_channel_state_callback(supla_dev,supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev,supla_esp_server_time_sync);
-
-    webserver_init(&supla_dev);
-
-    wifi_set_station_mode();
-    //wifi_set_access_point_mode("ESP-AP");
+    supla_dev_set_config(supla_dev,&supla_config);
 
     xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
-    for (;;) {
-        ESP_LOGI(TAG, "Updated free heap size: '%d'", esp_get_free_heap_size());
-        vTaskDelay(5000 / portTICK_RATE_MS);
-    }
+    wifi_set_station_mode();
 }

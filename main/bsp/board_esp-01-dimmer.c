@@ -10,6 +10,7 @@
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include "freertos/event_groups.h"
 
 #include <ledc-channel.h>
 #include <pir-sensor.h>
@@ -23,14 +24,41 @@ static bsp_t brd_esp01_dimmer =
     .id = "ESP-01 Dimmer"
 };
 
-
-
 bsp_t * const bsp = &brd_esp01_dimmer;
+
+static EventGroupHandle_t bsp_event_group;
+
+#define CONFIG_MODE_BIT BIT0
+
+static board_event_callback_t board_conf_init_cb = NULL;
+static board_event_callback_t board_conf_exit_cb = NULL;
 
 static SemaphoreHandle_t xCountingSemaphore;
 static supla_channel_t *ledc_channel;
 static supla_channel_t *pir1_channel;
 static supla_channel_t *pir2_channel;
+
+esp_err_t board_config_mode_init(void)
+{
+    ESP_LOGI(TAG, "config mode activate");
+    xEventGroupSetBits(bsp_event_group, CONFIG_MODE_BIT);
+
+    if(board_conf_init_cb)
+        board_conf_init_cb();
+    return ESP_OK;
+}
+
+esp_err_t board_config_mode_exit(void)
+{
+    TSD_SuplaChannelNewValue new_value = {};
+
+    ESP_LOGI(TAG, "config mode exit");
+    xEventGroupClearBits(bsp_event_group, CONFIG_MODE_BIT);
+    supla_ledc_channel_set_brightness(ledc_channel,&new_value);
+    if(board_conf_exit_cb)
+        board_conf_exit_cb();
+    return ESP_OK;
+}
 
 static void detect_cb(input_event_t event, void *arg)
 {
@@ -46,21 +74,34 @@ static void detect_cb(input_event_t event, void *arg)
     supla_channel_t *ch = arg;
     TSD_SuplaChannelNewValue new_value = {};
     TRGBW_Value *rgbw = (TRGBW_Value*)&new_value.value;
+    EventBits_t bits;
 
     ESP_LOGI(TAG, "detect_cb event = %s", events[event]);
     ESP_LOGI(TAG, "detect_cb smphr = %d", uxSemaphoreGetCount(xCountingSemaphore));
+
+    bits = xEventGroupWaitBits(bsp_event_group,CONFIG_MODE_BIT,0,0,1);
     switch (event) {
         case INPUT_EVENT_INIT:
             xSemaphoreGive(xCountingSemaphore);
-            rgbw->brightness = 100;
-            supla_ledc_channel_set_brightness(ch,&new_value);
+            if(!(bits & CONFIG_MODE_BIT)){
+                rgbw->brightness = 100;
+                supla_ledc_channel_set_brightness(ch,&new_value);
+            }
+            break;
+        case INPUT_EVENT_CLICKx3:
+            if(!(bits & CONFIG_MODE_BIT))
+                board_config_mode_init();
+            else
+                board_config_mode_exit();
             break;
         case INPUT_EVENT_DONE:
             xSemaphoreTake(xCountingSemaphore,portMAX_DELAY);
-            if( uxSemaphoreGetCount(xCountingSemaphore) == 0){
-                new_value.DurationMS = 5000;
-                rgbw->brightness = 100;
-                supla_ledc_channel_set_brightness(ch,&new_value);
+            if(!(bits & CONFIG_MODE_BIT)){
+                if( uxSemaphoreGetCount(xCountingSemaphore) == 0){
+                    new_value.DurationMS = 5000;
+                    rgbw->brightness = 100;
+                    supla_ledc_channel_set_brightness(ch,&new_value);
+                }
             }
             break;
         default:
@@ -68,8 +109,22 @@ static void detect_cb(input_event_t event, void *arg)
     }
 }
 
+static void pulse_task(void *arg)
+{
+    TSD_SuplaChannelNewValue new_value = {};
+    TRGBW_Value *rgbw = (TRGBW_Value*)&new_value.value;
+
+    while(1){
+        xEventGroupWaitBits(bsp_event_group,CONFIG_MODE_BIT,0,0,portMAX_DELAY);
+        rgbw->brightness = rgbw->brightness ? 0 : 100;
+        supla_ledc_channel_set_brightness(ledc_channel,&new_value);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+
 esp_err_t board_init(supla_dev_t *dev)
 {
+    bsp_event_group = xEventGroupCreate();
     xCountingSemaphore = xSemaphoreCreateCounting(2,0);
     ledc_channel = supla_ledc_channel_create(GPIO_NUM_3,1000);
 
@@ -96,7 +151,20 @@ esp_err_t board_init(supla_dev_t *dev)
     supla_dev_add_channel(dev,pir1_channel);
     supla_dev_add_channel(dev,pir2_channel);
 
-    ESP_LOGI(TAG,"Board init completed OK");
+    xTaskCreate(&pulse_task, "pulse", 2048, NULL, 1, NULL);
+    ESP_LOGI(TAG,"board init completed OK");
+    return ESP_OK;
+}
+
+esp_err_t board_set_config_init_callback(board_event_callback_t cb)
+{
+    board_conf_init_cb = cb;
+    return ESP_OK;
+}
+
+esp_err_t board_set_config_exit_callback(board_event_callback_t cb)
+{
+    board_conf_exit_cb = cb;
     return ESP_OK;
 }
 

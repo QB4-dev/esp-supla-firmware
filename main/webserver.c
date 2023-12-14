@@ -63,15 +63,14 @@ static esp_err_t init(supla_dev_t **dev)
 
 /// Public
 
-esp_err_t webserver_init(supla_dev_t **dev)
+esp_err_t webserver_start(supla_dev_t **dev)
 {
     if (server){
-        ESP_LOGI(TAG, "HTTPD started, trying to stop...");
+        ESP_LOGI(TAG, "server started, trying to stop...");
         httpd_stop(server);
     }
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    //config.uri_match_fn = httpd_uri_match_wildcard;
     config.max_uri_handlers = 100;
     config.lru_purge_enable = true;
 
@@ -80,4 +79,17 @@ esp_err_t webserver_init(supla_dev_t **dev)
 
     ESP_LOGI(TAG, "server started on port %d, free mem: %d bytes", config.server_port, esp_get_free_heap_size());
     return ESP_OK;
+}
+
+esp_err_t webserver_stop(void)
+{
+    esp_err_t rc;
+    if(server){
+        ESP_LOGI(TAG, "server stop...");
+        rc = httpd_stop(server);
+        server = NULL;
+        return rc;
+
+    }
+    return ESP_ERR_NOT_FOUND;
 }
