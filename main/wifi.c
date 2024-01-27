@@ -8,7 +8,6 @@
 #include "wifi.h"
 
 #include <string.h>
-#include <esp_event.h>
 #include <esp_log.h>
 #include <esp_system.h>
 #include <esp_wifi.h>
@@ -24,10 +23,12 @@
 
 static const char *TAG = "WiFi";
 
-esp_err_t wifi_init(system_event_cb_t event_handler)
+esp_err_t wifi_init(esp_event_handler_t eh)
 {
     tcpip_adapter_init();
-    ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, eh, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, eh, NULL));
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));

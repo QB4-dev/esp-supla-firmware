@@ -58,7 +58,7 @@ supla_channel_t *supla_ledc_channel_create(gpio_num_t gpio, uint32_t fade_ms)
 		.timer_num = LEDC_TIMER_0   ,         // timer index
 		.duty_resolution = LEDC_TIMER_13_BIT, // resolution of PWM duty
 		.speed_mode = LEDC_HIGH_SPEED_MODE,   // timer mode
-		.freq_hz = 1000,                      // frequency of PWM signal
+		.freq_hz = 250,                      // frequency of PWM signal
 	};
 	esp_timer_create_args_t timer_args = {
 		.name = "ledc-off",

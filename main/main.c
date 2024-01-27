@@ -19,6 +19,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "device.h"
 #include "bsp/board.h"
 #include "wifi.h"
 #include "webserver.h"
@@ -26,65 +27,71 @@
 static const char *TAG="APP";
 
 static supla_dev_t *supla_dev;
+static char ap_ssid[32];
 
 static struct supla_config supla_config = {
     .email = CONFIG_SUPLA_EMAIL,
     .server = CONFIG_SUPLA_SERVER
 };
 
-static esp_err_t event_handler(void *ctx, system_event_t *event)
+static void net_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
-    /* For accessing reason codes in case of disconnection */
-    system_event_info_t *info = &event->event_info;
+    if (event_base == WIFI_EVENT) {
+        switch(event_id) {
+        case WIFI_EVENT_STA_START:
+            //esp_wifi_connect();
+            break;
+        case WIFI_EVENT_STA_CONNECTED:{
+            wifi_event_sta_connected_t *info = event_data;
 
-    switch(event->event_id) {
-    case SYSTEM_EVENT_STA_START:
-        break;
-    case SYSTEM_EVENT_STA_GOT_IP:
-        ESP_LOGI(TAG, "got ip:%s",ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
-        supla_dev_start(supla_dev);
-        break;
-    case SYSTEM_EVENT_AP_STACONNECTED:
-        ESP_LOGI(TAG, "station:"MACSTR" join, AID=%d",
-                 MAC2STR(event->event_info.sta_connected.mac),
-                 event->event_info.sta_connected.aid);
-        break;
-    case SYSTEM_EVENT_AP_STADISCONNECTED:
-        ESP_LOGI(TAG, "station:"MACSTR"leave, AID=%d",
-                 MAC2STR(event->event_info.sta_disconnected.mac),
-                 event->event_info.sta_disconnected.aid);
-        break;
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-        ESP_LOGE(TAG, "Disconnect reason : %d", info->disconnected.reason);
-        if (info->disconnected.reason == WIFI_REASON_BASIC_RATE_NOT_SUPPORT) {
-            /*Switch to 802.11 bgn mode */
-            esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+            ESP_LOGI(TAG, "Connected to SSID: %s",info->ssid);
+            }break;
+        case WIFI_EVENT_STA_DISCONNECTED:{
+            wifi_event_sta_disconnected_t *info = event_data;
+
+            ESP_LOGE(TAG, "Station disconnected(reason : %d)",info->reason);
+//          if (info->reason == WIFI_REASON_BASIC_RATE_NOT_SUPPORT) {
+//              /*Switch to 802.11 bgn mode */
+//              esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N);
+//          }
+            if (info->reason == WIFI_REASON_ASSOC_LEAVE) {
+                /* disconnected by user */
+                break;
+            }
+            esp_wifi_connect();
+            }break;
+        default:
+            break;
         }
-        esp_wifi_connect();
+    } else if (event_base == IP_EVENT) {
+        switch(event_id){
+        case IP_EVENT_STA_GOT_IP:{
+            ip_event_got_ip_t* event = event_data;
+            ESP_LOGI(TAG, "got ip:%s", ip4addr_ntoa(&event->ip_info.ip));
+            supla_dev_start(supla_dev);
+            }break;
+        default:
+            break;
+        }
+    }
+}
+
+static void dev_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    switch (event_id) {
+    case DEVICE_EVENT_CONFIG_INIT:
+        wifi_set_access_point_mode(ap_ssid);
+        supla_dev_enter_config_mode(supla_dev);
+        webserver_start(&supla_dev);
         break;
-    case SYSTEM_EVENT_AP_STAIPASSIGNED:
-        ESP_LOGI(TAG, "assigned ip:%s", ip4addr_ntoa(&event->event_info.ap_staipassigned.ip));
-        break;
+    case DEVICE_EVENT_CONFIG_EXIT:{
+        webserver_stop();
+        supla_dev_exit_config_mode(supla_dev);
+        wifi_set_station_mode();
+        }break;
     default:
         break;
     }
-    return ESP_OK;
-}
-
-static void on_config_init(void)
-{
-    char ap_ssid[32];
-    supla_esp_generate_hostname(supla_dev,ap_ssid,sizeof(ap_ssid));
-    wifi_set_access_point_mode(ap_ssid);
-    supla_dev_enter_config_mode(supla_dev);
-    webserver_start(&supla_dev);
-}
-
-static void on_config_exit(void)
-{
-    webserver_stop();
-    supla_dev_exit_config_mode(supla_dev);
-    wifi_set_station_mode();
 }
 
 static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t state)
@@ -93,7 +100,7 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
 
     switch(state){
     case SUPLA_DEV_STATE_CONFIG:
-        board_config_mode_init();
+        device_init_config();
         break;
     case SUPLA_DEV_STATE_IDLE:
         break;
@@ -110,13 +117,20 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
     }
 }
 
+static esp_err_t supla_init(void)
+{
+    supla_dev = supla_dev_create("ESP-SUPLA-DEV",NULL);
+    supla_dev_set_flags(supla_dev,SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
+    supla_dev_set_state_changed_callback(supla_dev,supla_dev_state_change_callback);
+    supla_dev_set_common_channel_state_callback(supla_dev,supla_esp_get_wifi_state);
+    supla_dev_set_server_time_sync_callback(supla_dev,supla_esp_server_time_sync);
+    supla_dev_set_config(supla_dev,&supla_config);
+    return ESP_OK;
+}
+
 static void supla_task(void *arg)
 {
     supla_dev_t *dev = arg;
-    if(!dev){
-        vTaskDelete(NULL);
-        return;
-    }
 
     if(supla_dev_set_config(dev,&supla_config) != SUPLA_RESULT_TRUE){
         vTaskDelete(NULL);
@@ -132,22 +146,15 @@ static void supla_task(void *arg)
 void app_main()
 {
     ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    ESP_ERROR_CHECK(wifi_init(event_handler));
     ESP_ERROR_CHECK(supla_esp_nvs_config_init(&supla_config));
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    supla_dev = supla_dev_create("SUPLA-DEV",NULL);
-    board_set_config_init_callback(on_config_init);
-    board_set_config_exit_callback(on_config_exit);
+    ESP_ERROR_CHECK(device_init(dev_event_handler,NULL));
+    ESP_ERROR_CHECK(wifi_init(net_event_handler));
+
+    ESP_ERROR_CHECK(supla_init());
     ESP_ERROR_CHECK(board_init(supla_dev));
-
-    supla_dev_set_name(supla_dev,bsp->id);
-    supla_dev_set_flags(supla_dev,SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
-    supla_dev_set_state_changed_callback(supla_dev,supla_dev_state_change_callback);
-    supla_dev_set_common_channel_state_callback(supla_dev,supla_esp_get_wifi_state);
-    supla_dev_set_server_time_sync_callback(supla_dev,supla_esp_server_time_sync);
-    supla_dev_set_config(supla_dev,&supla_config);
+    ESP_ERROR_CHECK(supla_esp_generate_hostname(supla_dev,ap_ssid,sizeof(ap_ssid)));
 
     xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
     wifi_set_station_mode();

@@ -15,9 +15,9 @@
 #include <ledc-channel.h>
 #include <pir-sensor.h>
 
-static const char *TAG="BSP";
-
 #ifdef CONFIG_BSP_ESP01_DIMMER
+
+static const char *TAG="BSP";
 
 static bsp_t brd_esp01_dimmer =
 {
@@ -30,33 +30,25 @@ static EventGroupHandle_t bsp_event_group;
 
 #define CONFIG_MODE_BIT BIT0
 
-static board_event_callback_t board_conf_init_cb = NULL;
-static board_event_callback_t board_conf_exit_cb = NULL;
-
 static SemaphoreHandle_t xCountingSemaphore;
 static supla_channel_t *ledc_channel;
 static supla_channel_t *pir1_channel;
 static supla_channel_t *pir2_channel;
 
-esp_err_t board_config_mode_init(void)
+static esp_err_t board_config_mode_init(void)
 {
-    ESP_LOGI(TAG, "config mode activate");
     xEventGroupSetBits(bsp_event_group, CONFIG_MODE_BIT);
-
-    if(board_conf_init_cb)
-        board_conf_init_cb();
+    device_init_config();
     return ESP_OK;
 }
 
-esp_err_t board_config_mode_exit(void)
+static esp_err_t board_config_mode_exit(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
 
-    ESP_LOGI(TAG, "config mode exit");
     xEventGroupClearBits(bsp_event_group, CONFIG_MODE_BIT);
     supla_ledc_channel_set_brightness(ledc_channel,&new_value);
-    if(board_conf_exit_cb)
-        board_conf_exit_cb();
+    device_exit_config();
     return ESP_OK;
 }
 
@@ -147,6 +139,7 @@ esp_err_t board_init(supla_dev_t *dev)
     pir1_channel = supla_pir_sensor_create(&pir1_conf);
     pir2_channel = supla_pir_sensor_create(&pir2_conf);
 
+    supla_dev_set_name(dev,bsp->id);
     supla_dev_add_channel(dev,ledc_channel);
     supla_dev_add_channel(dev,pir1_channel);
     supla_dev_add_channel(dev,pir2_channel);
@@ -155,17 +148,4 @@ esp_err_t board_init(supla_dev_t *dev)
     ESP_LOGI(TAG,"board init completed OK");
     return ESP_OK;
 }
-
-esp_err_t board_set_config_init_callback(board_event_callback_t cb)
-{
-    board_conf_init_cb = cb;
-    return ESP_OK;
-}
-
-esp_err_t board_set_config_exit_callback(board_event_callback_t cb)
-{
-    board_conf_exit_cb = cb;
-    return ESP_OK;
-}
-
 #endif
