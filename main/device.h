@@ -15,6 +15,8 @@
 #include <esp_log.h>
 #include <esp_err.h>
 
+#define DEVICE_CONFIG_EVENT_BIT BIT0
+
 /**
  * @brief Declare device event base
  *
@@ -31,6 +33,7 @@ typedef enum {
 } sched_event_id_t;
 
 esp_err_t device_init(esp_event_handler_t ev_hdl, void *args);
+EventBits_t device_get_event_bits(void);
 
 esp_err_t device_init_config(void);
 esp_err_t device_exit_config(void);

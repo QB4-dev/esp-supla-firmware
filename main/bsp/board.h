@@ -24,4 +24,11 @@ extern bsp_t * const bsp;
 esp_err_t board_early_init(void);
 esp_err_t board_init(supla_dev_t *dev);
 
+esp_err_t board_on_config_mode_init(void);
+esp_err_t board_on_config_mode_exit(void);
+
+esp_err_t board_on_update_init(void);
+esp_err_t board_on_update_completed(void);
+esp_err_t board_on_update_fail(void);
+
 #endif /* MAIN_BSP_BOARD_H_ */

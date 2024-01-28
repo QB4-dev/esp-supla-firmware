@@ -5,8 +5,8 @@
  *      Author: kuba
  */
 
-#ifndef _SUPLA_SENSOR_PIR_H_
-#define _SUPLA_SENSOR_PIR_H_
+#ifndef _SUPLA_CLICK_INPUT_H_
+#define _SUPLA_CLICK_INPUT_H_
 
 #include <libsupla/channel.h>
 #include <driver/gpio.h>
@@ -23,7 +23,7 @@ typedef enum {
 
 typedef void (*on_detect_calback_t)(input_event_t event,void *);
 
-struct pir_sensor_config {
+struct click_input_config {
 	gpio_num_t gpio;
 	unsigned int action_trigger_caps;
 	supla_channel_t **related_channel;
@@ -31,6 +31,6 @@ struct pir_sensor_config {
 	void *arg;
 };
 
-supla_channel_t *supla_pir_sensor_create(struct pir_sensor_config *pir_sensor_conf);
+supla_channel_t *supla_click_input_create(const struct click_input_config *input_conf);
 
-#endif /* _SUPLA_SENSORS_DHT_H_ */
+#endif /* _SUPLA_CLICK_INPUT_H_ */

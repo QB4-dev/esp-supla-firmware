@@ -80,11 +80,13 @@ static void dev_event_handler(void *event_handler_arg, esp_event_base_t event_ba
 {
     switch (event_id) {
     case DEVICE_EVENT_CONFIG_INIT:
+        board_on_config_mode_init();
         wifi_set_access_point_mode(ap_ssid);
         supla_dev_enter_config_mode(supla_dev);
         webserver_start(&supla_dev);
         break;
     case DEVICE_EVENT_CONFIG_EXIT:{
+        board_on_config_mode_exit();
         webserver_stop();
         supla_dev_exit_config_mode(supla_dev);
         wifi_set_station_mode();
