@@ -1,12 +1,18 @@
 menu "Board Select"
 	choice BOARD
 	prompt "Target board"
-            default BSP_ESP01_DIMMER
+            default BSP_ESP01_DIMMER_v1_0
             help
                 Select target board
                 
-	config BSP_ESP01_DIMMER
-	    bool "ESP-01 DIMMER"
+	config BSP_ESP01_DIMMER_v1_0
+	    bool "ESP-01 DIMMER v1.0"
+	    
+	config BSP_ESP01_DIMMER_v1_1
+	    bool "ESP-01 DIMMER v1.1"
+	    
+	config BSP_ESP01_RGBW
+	    bool "ESP-01 RGBW"
 
 	config BSP_ESP01_PLUG_DHT
 	    bool "ESP-01 PLUG DHT"

@@ -1,0 +1,40 @@
+/*
+ * exp-input.h
+ *
+ *  Created on: 31 sty 2023
+ *      Author: kuba
+ */
+
+#ifndef _SUPLA_EXP_INPUT_H_
+#define _SUPLA_EXP_INPUT_H_
+
+#include <driver/gpio.h>
+#include <pca9557.h>
+
+typedef enum {
+    ACTIVE_LOW = 0,
+    ACTIVE_HIGH = 1
+} exp_input_active_t;
+
+typedef enum {
+    EXP_INPUT_EVENT_NONE = 0,
+	EXP_INPUT_EVENT_INIT,
+	EXP_INPUT_EVENT_HOLD,
+	EXP_INPUT_EVENT_DONE
+} exp_input_event_t;
+
+typedef struct exp_input *exp_input_t;
+typedef void (*on_exp_event_calback_t)(gpio_num_t pin_num,exp_input_event_t event,void *);
+
+struct exp_input_config {
+    i2c_dev_t *i2c_expander;
+    gpio_num_t pin_num;
+    exp_input_active_t active_level;
+    uint32_t hold_timeout;
+	on_exp_event_calback_t callback;
+	void *arg;
+};
+
+exp_input_t exp_input_create(const struct exp_input_config *input_conf);
+
+#endif /* _SUPLA_EXP_INPUT_H_ */

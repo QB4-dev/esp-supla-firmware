@@ -5,7 +5,7 @@
 #include <esp_timer.h>
 #include <esp_log.h>
 
-#define PIR_POLL_INTERVAL_US 10000   //10ms
+#define POLL_INTERVAL_US     10000   //10ms
 #define DEAD_TIME_US         50000   //50ms
 #define BUF_RESET_TIME_US   500000   //500ms
 #define CLICK_EVENTS_MAX        5
@@ -41,7 +41,7 @@ static void click_input_poll(void *arg)
 
 	if(ch_data->level == 0 && ch_data->init_time < DEAD_TIME_US){
 		// Dead time, ignore all
-		ch_data->init_time += PIR_POLL_INTERVAL_US;
+		ch_data->init_time += POLL_INTERVAL_US;
 		return;
 	}
 
@@ -53,14 +53,14 @@ static void click_input_poll(void *arg)
 			ch_data->on_detect_cb(INPUT_EVENT_INIT,ch_data->cb_arg);
 			//supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_ON);
 		}
-		ch_data->init_time += PIR_POLL_INTERVAL_US;
+		ch_data->init_time += POLL_INTERVAL_US;
 		ch_data->idle_time = 0;
 	} else {
 		if(ch_data->init_time > 0){
 			ch_data->buf[ch_data->ev_num % CLICK_EVENTS_MAX] = ch_data->init_time/1000;
 			ch_data->ev_num++;
 		}
-		ch_data->idle_time += PIR_POLL_INTERVAL_US;
+		ch_data->idle_time += POLL_INTERVAL_US;
 		ch_data->init_time = 0;
 	}
 	if(ch_data->idle_time > BUF_RESET_TIME_US && ch_data->buf[0] != 0){
@@ -104,30 +104,30 @@ supla_channel_t *supla_click_input_create(const struct click_input_config *input
 		.intr_type = GPIO_INTR_DISABLE
 	};
 	esp_timer_create_args_t timer_args = {
-		.name = "pir-sensor",
+		.name = "click-input",
 		.dispatch_method = ESP_TIMER_TASK,
 		.callback = click_input_poll,
 	};
-	struct click_input_channel_data *pir_data;
+	struct click_input_channel_data *data;
 
 	supla_channel_t *ch = supla_channel_create(&at_channel_config);
 	if(!ch)
 		return NULL;
 
-	pir_data = calloc(1,sizeof(struct click_input_channel_data));
-	if(!pir_data){
+	data = calloc(1,sizeof(struct click_input_channel_data));
+	if(!data){
 		supla_channel_free(ch);
 		return NULL;
 	}
-	pir_data->gpio = input_conf->gpio;
-	pir_data->level = 1;
-	pir_data->on_detect_cb = input_conf->on_detect_cb;
-	pir_data->cb_arg = input_conf->arg;
-	supla_channel_set_data(ch,pir_data);
+	data->gpio = input_conf->gpio;
+	data->level = 1;
+	data->on_detect_cb = input_conf->on_detect_cb;
+	data->cb_arg = input_conf->arg;
+	supla_channel_set_data(ch,data);
 
 	gpio_config(&gpio_conf);
 	timer_args.arg = ch;
-	esp_timer_create(&timer_args,&pir_data->timer);
-	esp_timer_start_periodic(pir_data->timer,PIR_POLL_INTERVAL_US);
+	esp_timer_create(&timer_args,&data->timer);
+	esp_timer_start_periodic(data->timer,POLL_INTERVAL_US);
 	return ch;
 }

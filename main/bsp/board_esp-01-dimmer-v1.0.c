@@ -16,7 +16,7 @@
 
 #include <ledc-channel.h>
 
-#ifdef CONFIG_BSP_ESP01_DIMMER
+#ifdef CONFIG_BSP_ESP01_DIMMER_v1_0
 
 static const char *TAG="BSP";
 
