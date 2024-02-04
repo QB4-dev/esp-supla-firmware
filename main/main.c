@@ -121,12 +121,14 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
 
 static esp_err_t supla_init(void)
 {
-    supla_dev = supla_dev_create("ESP-SUPLA-DEV",NULL);
+    supla_esp_nvs_config_init(&supla_config);
+    supla_dev = supla_dev_create(bsp->id,NULL);
     supla_dev_set_flags(supla_dev,SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
     supla_dev_set_state_changed_callback(supla_dev,supla_dev_state_change_callback);
     supla_dev_set_common_channel_state_callback(supla_dev,supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev,supla_esp_server_time_sync);
     supla_dev_set_config(supla_dev,&supla_config);
+    supla_esp_generate_hostname(supla_dev,ap_ssid,sizeof(ap_ssid));
     return ESP_OK;
 }
 
@@ -147,8 +149,7 @@ static void supla_task(void *arg)
 
 void app_main()
 {
-    ESP_ERROR_CHECK(nvs_flash_init());
-    ESP_ERROR_CHECK(supla_esp_nvs_config_init(&supla_config));
+    ESP_ERROR_CHECK(board_early_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ESP_ERROR_CHECK(device_init(dev_event_handler,NULL));
@@ -156,8 +157,10 @@ void app_main()
 
     ESP_ERROR_CHECK(supla_init());
     ESP_ERROR_CHECK(board_init(supla_dev));
-    ESP_ERROR_CHECK(supla_esp_generate_hostname(supla_dev,ap_ssid,sizeof(ap_ssid)));
+
+    ESP_ERROR_CHECK(webserver_use_settings(bsp->settings_pack));
 
     xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
+    //webserver_start(&supla_dev);//REMOVE LATER
     wifi_set_station_mode();
 }

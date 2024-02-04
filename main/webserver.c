@@ -16,6 +16,7 @@
 static const char *TAG="HTTPD";
 
 static httpd_handle_t server = NULL;
+static const settings_group_t *bsp_settings_pack = NULL;
 
 #define DECLARE_EMBED_HANDLER(NAME, URI, CT) \
     extern const char embed_##NAME[] asm("_binary_"#NAME"_start"); \
@@ -27,9 +28,11 @@ static httpd_handle_t server = NULL;
     static const httpd_uri_t route_get_##NAME = { .uri = (URI), .method = HTTP_GET, .handler = get_##NAME }
 
 /// Handlers
+///
+///
 
 DECLARE_EMBED_HANDLER(index_html, "/index.html", "text/html");
-//DECLARE_EMBED_HANDLER(supla_css, "/supla.css", "text/css");
+DECLARE_EMBED_HANDLER(supla_css, "/supla.css", "text/css");
 static const httpd_uri_t route_get_root = { .uri = "/", .method = HTTP_GET, .handler = get_index_html };
 
 static httpd_uri_t wifi_get_handler = { .uri = "/wifi", .method  = HTTP_GET, .handler = esp_httpd_wifi_handler };
@@ -41,10 +44,14 @@ static httpd_uri_t supla_post_handler = { .uri = "/supla", .method  = HTTP_POST,
 static httpd_uri_t info_handler = { .uri = "/info", .method  = HTTP_GET, .handler = esp_httpd_app_info_handler };
 static httpd_uri_t fota_handler = { .uri = "/update", .method  = HTTP_POST, .handler = esp_httpd_fota_handler };
 
+static httpd_uri_t settings_get_handler = { .uri = "/settings", .method  = HTTP_GET, .handler = settings_httpd_handler};
+static httpd_uri_t settings_post_handler = { .uri = "/settings", .method  = HTTP_POST, .handler = settings_httpd_handler};
+
 static esp_err_t init(supla_dev_t **dev)
 {
     // Static file handlers
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_index_html));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_supla_css));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_root));
 
     // Additional handlers
@@ -58,6 +65,13 @@ static esp_err_t init(supla_dev_t **dev)
 
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &info_handler));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &fota_handler));
+
+    if(bsp_settings_pack != NULL){
+        settings_get_handler.user_ctx = (void*)bsp_settings_pack;
+        settings_post_handler.user_ctx = (void*)bsp_settings_pack;
+        ESP_ERROR_CHECK(httpd_register_uri_handler(server,&settings_get_handler));
+        ESP_ERROR_CHECK(httpd_register_uri_handler(server,&settings_post_handler));
+    }
     return ESP_OK;
 }
 
@@ -92,4 +106,13 @@ esp_err_t webserver_stop(void)
 
     }
     return ESP_ERR_NOT_FOUND;
+}
+
+esp_err_t webserver_use_settings(const settings_group_t *settings_pack)
+{
+    if(server)
+        return ESP_ERR_INVALID_STATE;
+
+    bsp_settings_pack = settings_pack;
+    return ESP_OK;
 }

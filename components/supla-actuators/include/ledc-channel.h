@@ -21,5 +21,6 @@ struct ledc_channel_config {
 supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *ledc_ch_conf);
 
 int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness);
 
 #endif /* _SUPLA_SENSORS_DHT_H_ */

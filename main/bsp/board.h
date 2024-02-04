@@ -13,10 +13,12 @@
 #include <esp_log.h>
 #include <esp-supla.h>
 #include <driver/gpio.h>
+#include <settings.h>
 #include "../device.h"
 
 typedef struct {
     const char *id;
+    const settings_group_t *settings_pack;
 }bsp_t;
 
 extern bsp_t * const bsp;

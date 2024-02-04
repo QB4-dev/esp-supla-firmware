@@ -4,7 +4,7 @@
 	<title>SUPLA web config</title>
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<!--<link rel="stylesheet" href="supla.css"> -->
+	<link rel="stylesheet" href="supla.css">
 	<style>
 		body{color:#606c76;font-family:'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;}
 	</style>
@@ -16,10 +16,12 @@
 	<br>
 	<div id="net">Loading ...</div><br>
 	<div id="wifi">Loading ...</div>
+	<br>
+	<div id="brd">Loading ...</div>
 </div>
 
 <script>
-//const esp_url="http://192.168.100.16";
+//const esp_url="http://192.168.100.18";
 //const esp_url="http://192.168.4.1";
 const esp_url="";
 
@@ -127,7 +129,7 @@ function getSuplaConfigForm(){
 		<form id="supla-form" method="post">
 			<strong>SUPLA config:</strong><br>
 			Email<br>
-			<input class=type="text" name="email" value=${js.data.email} style="max-width:300px"><br>
+			<input type="text" name="email" value=${js.data.email} style="max-width:300px"><br>
 			Server<br>
 			<input type="text" name="server" value=${js.data.server} style="max-width:300px"><br>
 			<input type="submit" value="submit">
@@ -152,10 +154,68 @@ function getSuplaConfigForm(){
 	})
 }
 
+function getSettingsForm(){
+	fetch(esp_url+"/settings")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('brd');
+
+		let inputs = '';
+		js.data.groups.forEach((gr, i) => {
+			inputs+=`${gr.label}:<br>`;
+			inputs+='<small>';
+			gr.settings.forEach((item, i) => {
+				switch (item.type) {
+					case "BOOL":
+						inputs+=`<input type="checkbox" name="${gr.label}:${item.label}" ${item.val?"checked":''}>${item.label}<br>`;
+						break;
+					case "NUM":
+						inputs+=`${item.label}<br><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
+						break;
+					case "ONEOF":
+						inputs+=`${item.label}<br><select name="${gr.label}:${item.label}" style="width:160px">`;
+						item.labels.forEach((label, i) => { inputs+=` <option value=${i} ${item.val==i?"selected":''}>${label}</option>`;});
+						inputs+=`</select><br>`;
+						break;
+					default:
+						break;
+				}
+			});
+			inputs+=`</small>`;
+		});
+
+		let html = `
+		<div class="container">
+		<form id="brd-form" method="post">
+			<strong>BOARD config:</strong><br>
+			${inputs}
+			<input type="submit" value="submit">
+		</form>
+		</div>`;
+
+		div.innerHTML = html;
+		const form = document.getElementById('brd-form');
+		form.onsubmit = function(e){
+			e.preventDefault();
+			let data = decodeURIComponent(new URLSearchParams(new FormData(this)));
+
+			fetch(esp_url+"/settings?action=set",
+			{
+				method: "POST",
+				body: data
+			})
+			.then(r => r.json())
+			.then(js => { alert("board config changed"); });
+		};
+
+	})
+}
+
 suplaStats();
 netStats();
 getWiFiConfigForm();
 getSuplaConfigForm();
+getSettingsForm();
 
 </script>
 

@@ -8,6 +8,7 @@
 #ifndef _SUPLA_EXP_INPUT_H_
 #define _SUPLA_EXP_INPUT_H_
 
+#include <libsupla/channel.h>
 #include <driver/gpio.h>
 #include <pca9557.h>
 
@@ -23,18 +24,19 @@ typedef enum {
 	EXP_INPUT_EVENT_DONE
 } exp_input_event_t;
 
-typedef struct exp_input *exp_input_t;
 typedef void (*on_exp_event_calback_t)(gpio_num_t pin_num,exp_input_event_t event,void *);
 
 struct exp_input_config {
     i2c_dev_t *i2c_expander;
     gpio_num_t pin_num;
     exp_input_active_t active_level;
-    uint32_t hold_timeout;
+    uint32_t hold_time;
+    unsigned int action_trigger_caps;
+    supla_channel_t **related_channel;
 	on_exp_event_calback_t callback;
 	void *arg;
 };
 
-exp_input_t exp_input_create(const struct exp_input_config *input_conf);
+supla_channel_t *supla_exp_input_create(const struct exp_input_config *input_conf);
 
 #endif /* _SUPLA_EXP_INPUT_H_ */
