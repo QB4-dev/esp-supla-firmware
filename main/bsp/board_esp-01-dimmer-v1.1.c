@@ -147,7 +147,7 @@ static void input_calback(gpio_num_t pin_num,exp_input_event_t event,void *arg)
             supla_ledc_channel_get_brightness(ledc_channel,&brightness);
             if(brightness){
                 new_value.DurationMS = off_delay_set ? 1000 * off_delay_set->num.val : 5000;
-                rgbw->brightness = 100;
+                rgbw->brightness = brightness;
                 supla_ledc_channel_set_brightness(ledc_channel,&new_value);
             }
             break;
@@ -174,6 +174,8 @@ static void pulse_task(void *arg)
 
 esp_err_t board_init(supla_dev_t *dev)
 {
+    setting_t *active_lvl_set = NULL;
+
     settings_nvs_read(bsp->settings_pack);
     ESP_ERROR_CHECK(i2cdev_init());
     ESP_ERROR_CHECK(pca9557_init_desc(&pca9536, PCA9536_I2C_ADDR, I2C_NUM_0, GPIO_NUM_0, GPIO_NUM_2));
@@ -193,19 +195,21 @@ esp_err_t board_init(supla_dev_t *dev)
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
     };
 
+    active_lvl_set = settings_pack_find(bsp->settings_pack,IN1_SETTINGS_GR,"ACTIVE_LVL");
     struct exp_input_config input1_conf = {
         .i2c_expander = &pca9536,
         .pin_num = GPIO_NUM_1,
-        .active_level = ACTIVE_HIGH,
+        .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
         .callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel
     };
 
+    active_lvl_set = settings_pack_find(bsp->settings_pack,IN2_SETTINGS_GR,"ACTIVE_LVL");
     struct exp_input_config input2_conf = {
         .i2c_expander = &pca9536,
         .pin_num = GPIO_NUM_2,
-        .active_level = ACTIVE_HIGH,
+        .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
         .callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel

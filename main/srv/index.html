@@ -5,25 +5,63 @@
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link rel="stylesheet" href="supla.css">
-	<style>
-		body{color:#606c76;font-family:'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;}
-	</style>
 </head>
 <body>
-<div class="container">
-	<div id="device">Loading ...</div><br>
-	<div id="supla">Loading ...</div>
-	<br>
-	<div id="net">Loading ...</div><br>
-	<div id="wifi">Loading ...</div>
-	<br>
-	<div id="brd">Loading ...</div>
+<div id="navbar" class="navbar"></div>
+	<div id="SUPLA" class="tab">
+		<div id="device">Loading ...</div><br>
+		<div id="supla">Loading ...</div>
+	</div>
+
+	<div id="WiFi" class="tab">
+		<div id="net">Loading ...</div><br>
+		<div id="wifi">Loading ...</div>
+	</div>
+
+	<div id="Conf" class="tab">
+			<div id="brd">Loading ...</div>
+	</div>
+
+	<div id="Fw" class="tab">
+		<div id="app">Loading ...</div><br>
+		<div class="row">
+			<form id="fotaForm" class="file-form" method="post" action="/update" enctype="multipart/form-data">
+					<input type="file" name="firmware" accept=".bin">
+					<input type="submit" value="UPGRADE" name="submit"></input>
+			</form>
+		</div>
+	</div>
 </div>
 
 <script>
 //const esp_url="http://192.168.100.18";
 //const esp_url="http://192.168.4.1";
 const esp_url="";
+
+function tab(e, id) {
+  var i, content;
+
+  content = document.getElementsByClassName("tab");
+  for (i = 0; i < content.length; i++) {
+    content[i].style.display = "none";
+  }
+
+  document.getElementById(id).style.display = "block";
+  e.currentTarget.className += " active";
+}
+
+function getNavbar(div){
+		let navbar = `
+		<input class="menu-btn" type="checkbox" id="menu-btn" />
+		<label class="menu-icon" for="menu-btn"><span class="navicon"></span></label>
+		<ul class="menu">
+			<li><a onclick="tab(event,'WiFi')">WiFi</a></li>
+			<li><a onclick="tab(event,'SUPLA')" id="default">SUPLA</a></li>
+			<li><a onclick="tab(event,'Conf')">Config</a></li>
+			<li><a onclick="tab(event,'Fw')">Firmware</a></li>
+		</ul>`;
+		div.innerHTML = navbar;
+}
 
 function suplaStats(){
 	fetch(esp_url+"/supla")
@@ -38,15 +76,14 @@ function suplaStats(){
 			return h + ':' + m + ':' + s;
 		}
 
-		let stats = `
-			<div class="container">
-				<strong>Device: ${js.data.name}</strong><br>
-				<small>software: ${js.data.software_ver}</small><br>
-				<small>state: ${js.data.state}</small><br>
-				<small>GUID: ${js.data.guid}</small><br>
-				<small>uptime: ${secToTime(js.data.uptime)}</small><br>
-				<small>connection uptime: ${secToTime(js.data.connection_uptime)}</small><br>
-			</div>`;
+		let stats = `<small>
+		Device: ${js.data.name}<br>
+		software: ${js.data.software_ver}<br>
+		state: ${js.data.state}<br>
+		GUID: ${js.data.guid}<br>
+		uptime: ${secToTime(js.data.uptime)}<br>
+		connection uptime: ${secToTime(js.data.connection_uptime)}
+		</small>`;
 
 		div.innerHTML = stats;
 		return setTimeout(suplaStats, 2000);
@@ -61,8 +98,6 @@ function netStats(){
 		let sta = js.data.sta;
 
 		let stats = `
-		<div class="container">
-			<strong>WiFi:</strong><br>
 			<small>
 				Status: ${sta.status}<br>`;
 		if(sta.connection)
@@ -72,11 +107,10 @@ function netStats(){
 				RSSI: ${sta.connection.rssi} dB<br>`;
 
 		stats +=`
-				IP addr: ${sta.ip_info.ip}<br>
-				netmask: ${sta.ip_info.netmask}<br>
-				gateway: ${sta.ip_info.gw}
-			</small>
-		</div>`;
+			IP addr: ${sta.ip_info.ip}<br>
+			netmask: ${sta.ip_info.netmask}<br>
+			gateway: ${sta.ip_info.gw}
+		</small>`;
 
 		div.innerHTML = stats;
 		return setTimeout(netStats, 2000);
@@ -90,7 +124,6 @@ function getWiFiConfigForm(){
 		const div = document.getElementById('wifi');
 
 		let html = `
-		<div class="container">
 		<form id="wifi-form" method="post">
 			<strong>WiFi config:</strong><br>
 			SSID<br>
@@ -98,8 +131,7 @@ function getWiFiConfigForm(){
 			Password<br>
 			<input type="password" name="passwd" style="max-width:300px"><br>
 			<input type="submit" value="submit">
-		</form>
-		</div>`;
+		</form>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('wifi-form');
@@ -125,7 +157,6 @@ function getSuplaConfigForm(){
 		const div = document.getElementById('supla');
 
 		let html = `
-		<div class="container">
 		<form id="supla-form" method="post">
 			<strong>SUPLA config:</strong><br>
 			Email<br>
@@ -133,8 +164,7 @@ function getSuplaConfigForm(){
 			Server<br>
 			<input type="text" name="server" value=${js.data.server} style="max-width:300px"><br>
 			<input type="submit" value="submit">
-		</form>
-		</div>`;
+		</form>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('supla-form');
@@ -160,45 +190,36 @@ function getSettingsForm(){
 	.then(js => {
 		const div = document.getElementById('brd');
 
-		let inputs = '';
+		let html = `<form id="brd-form" method="post">`;
 		js.data.groups.forEach((gr, i) => {
-			inputs+=`${gr.label}:<br>`;
-			inputs+='<small>';
+			html+=`${gr.label}:<br>`;
+			html+='<small>';
 			gr.settings.forEach((item, i) => {
 				switch (item.type) {
 					case "BOOL":
-						inputs+=`<input type="checkbox" name="${gr.label}:${item.label}" ${item.val?"checked":''}>${item.label}<br>`;
+						html+=`<input type="checkbox" name="${gr.label}:${item.label}" ${item.val?"checked":''}>${item.label}<br>`;
 						break;
 					case "NUM":
-						inputs+=`${item.label}<br><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
+						html+=`${item.label}<br><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
 						break;
 					case "ONEOF":
-						inputs+=`${item.label}<br><select name="${gr.label}:${item.label}" style="width:160px">`;
-						item.labels.forEach((label, i) => { inputs+=` <option value=${i} ${item.val==i?"selected":''}>${label}</option>`;});
-						inputs+=`</select><br>`;
+						html+=`${item.label}<br><select name="${gr.label}:${item.label}" style="width:160px">`;
+						item.labels.forEach((label, i) => { html+=` <option value=${i} ${item.val==i?"selected":''}>${label}</option>`;});
+						html+=`</select><br>`;
 						break;
 					default:
 						break;
 				}
 			});
-			inputs+=`</small>`;
+			html+=`</small>`;
 		});
-
-		let html = `
-		<div class="container">
-		<form id="brd-form" method="post">
-			<strong>BOARD config:</strong><br>
-			${inputs}
-			<input type="submit" value="submit">
-		</form>
-		</div>`;
+		html+=`<input type="submit" value="submit"></form>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('brd-form');
 		form.onsubmit = function(e){
 			e.preventDefault();
 			let data = decodeURIComponent(new URLSearchParams(new FormData(this)));
-
 			fetch(esp_url+"/settings?action=set",
 			{
 				method: "POST",
@@ -207,16 +228,63 @@ function getSettingsForm(){
 			.then(r => r.json())
 			.then(js => { alert("board config changed"); });
 		};
-
 	})
 }
+
+function appInfo(){
+	fetch(esp_url+"/info")
+	.then(r => r.json())
+	.then(js => {
+		const div = document.getElementById('app');
+
+		let info = `
+			<h6>Firmware:</h6>
+			<small>project: ${js.project_name}</small><br>
+			<small>version: ${js.version}</small><br>
+			<small>idf_ver: ${js.idf_ver}</small><br>
+			<small>bulid date: ${js.date}</small><br>
+			<small>bulid time: ${js.time}</small><br>`;
+
+		div.innerHTML = info;
+	});
+}
+
+function uploadFile(event){
+	event.preventDefault();
+	var xhttp = new XMLHttpRequest();
+	var data = new FormData(event.target);
+
+	xhttp.onload = function() {
+		if(this.status == 200){
+			var js = JSON.parse(this.responseText);
+			alert((js.result==='ESP_OK')?('Update success:\n\n'+js.bytes_uploaded +'b uploaded'):('Update error'));
+		} else {
+			alert('Request Error');
+		}
+		event.target.style.display = 'block';
+	};
+
+	xhttp.ontimeout = function(e) {
+		info.innerHTML='Error: request timed out';
+		event.target.style.display = 'block';
+	};
+
+	xhttp.timeout = 120000;
+	xhttp.open("POST",event.target.action, true);
+	event.target.style.display = 'none';
+	xhttp.send(data);
+}
+
+getNavbar(document.getElementById('navbar'));
 
 suplaStats();
 netStats();
 getWiFiConfigForm();
 getSuplaConfigForm();
 getSettingsForm();
-
+appInfo();
+document.getElementById("fotaForm").addEventListener("submit", uploadFile);
+document.getElementById("default").click();
 </script>
 
 </body>

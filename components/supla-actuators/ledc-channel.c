@@ -39,6 +39,17 @@ int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewVa
     return supla_channel_set_rgbw_value(ch,rgbw);
 }
 
+int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness)
+{
+    struct ledc_channel_data *data = supla_channel_get_data(ch);
+
+    if(brightness){
+        *brightness = data->brightness;
+        return ESP_OK;
+    }
+    return ESP_ERR_INVALID_ARG;
+}
+
 int supla_ledc_channel_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
@@ -48,12 +59,12 @@ int supla_ledc_channel_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannel
     return supla_ledc_channel_set_brightness(ch,new_value);
 }
 
-int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness)
+int supla_ledc_channel_get_base_brightness(supla_channel_t *ch, uint8_t *brightness)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
 
     if(brightness){
-        *brightness = data->brightness;
+        *brightness = data->base_brightness;
         return ESP_OK;
     }
     return ESP_ERR_INVALID_ARG;
