@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>SUPLA web config</title>
+	<title>Device config</title>
 	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link rel="stylesheet" href="supla.css">
 </head>
 <body>
-<div id="navbar" class="navbar"></div>
+	<div id="navbar" class="navbar">
+  <a class="logo" onclick="tab(event,'STAT')" id="default"></a>
+	<input class="menu-btn" type="checkbox" id="menu-btn" />
+	<label class="menu-icon" for="menu-btn"><span class="navicon"></span></label>
+	<ul class="menu">
+		<li><a onclick="tab(event,'WiFi')">WiFi</a></li>
+		<li><a onclick="tab(event,'SUPLA')">SUPLA</a></li>
+		<li><a onclick="tab(event,'BOARD')">Board</a></li>
+		<li><a onclick="tab(event,'Fw')">Firmware</a></li>
+	</ul>
+	</div>
+	<div id="STAT" class="tab">
+		<div id="device">Loading ...</div>
+	</div>
+
 	<div id="SUPLA" class="tab">
-		<div id="device">Loading ...</div><br>
 		<div id="supla">Loading ...</div>
 	</div>
 
@@ -18,7 +31,7 @@
 		<div id="wifi">Loading ...</div>
 	</div>
 
-	<div id="Conf" class="tab">
+	<div id="BOARD" class="tab">
 			<div id="brd">Loading ...</div>
 	</div>
 
@@ -29,6 +42,7 @@
 					<input type="file" name="firmware" accept=".bin">
 					<input type="submit" value="UPGRADE" name="submit"></input>
 			</form>
+			<div id="loadbar" class="loader" style="display:none">Please wait...</div>
 		</div>
 	</div>
 </div>
@@ -39,28 +53,12 @@
 const esp_url="";
 
 function tab(e, id) {
-  var i, content;
-
-  content = document.getElementsByClassName("tab");
-  for (i = 0; i < content.length; i++) {
+  let content = document.getElementsByClassName("tab");
+  for (var i = 0; i < content.length; i++)
     content[i].style.display = "none";
-  }
 
   document.getElementById(id).style.display = "block";
   e.currentTarget.className += " active";
-}
-
-function getNavbar(div){
-		let navbar = `
-		<input class="menu-btn" type="checkbox" id="menu-btn" />
-		<label class="menu-icon" for="menu-btn"><span class="navicon"></span></label>
-		<ul class="menu">
-			<li><a onclick="tab(event,'WiFi')">WiFi</a></li>
-			<li><a onclick="tab(event,'SUPLA')" id="default">SUPLA</a></li>
-			<li><a onclick="tab(event,'Conf')">Config</a></li>
-			<li><a onclick="tab(event,'Fw')">Firmware</a></li>
-		</ul>`;
-		div.innerHTML = navbar;
 }
 
 function suplaStats(){
@@ -84,7 +82,7 @@ function suplaStats(){
 		uptime: ${secToTime(js.data.uptime)}<br>
 		connection uptime: ${secToTime(js.data.connection_uptime)}
 		</small>`;
-
+		document.getElementById("default").innerHTML = js.data.name;
 		div.innerHTML = stats;
 		return setTimeout(suplaStats, 2000);
 	});
@@ -125,7 +123,6 @@ function getWiFiConfigForm(){
 
 		let html = `
 		<form id="wifi-form" method="post">
-			<strong>WiFi config:</strong><br>
 			SSID<br>
 			<input type="text" name="ssid" value="${js.data.sta.ssid}" style="max-width:300px"><br>
 			Password<br>
@@ -158,7 +155,6 @@ function getSuplaConfigForm(){
 
 		let html = `
 		<form id="supla-form" method="post">
-			<strong>SUPLA config:</strong><br>
 			Email<br>
 			<input type="text" name="email" value=${js.data.email} style="max-width:300px"><br>
 			Server<br>
@@ -200,10 +196,10 @@ function getSettingsForm(){
 						html+=`<input type="checkbox" name="${gr.label}:${item.label}" ${item.val?"checked":''}>${item.label}<br>`;
 						break;
 					case "NUM":
-						html+=`${item.label}<br><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
+						html+=`<span class="label-inline">${item.label}</span><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
 						break;
 					case "ONEOF":
-						html+=`${item.label}<br><select name="${gr.label}:${item.label}" style="width:160px">`;
+						html+=`<span class="label-inline">${item.label}</span><select name="${gr.label}:${item.label}" style="width:160px">`;
 						item.labels.forEach((label, i) => { html+=` <option value=${i} ${item.val==i?"selected":''}>${label}</option>`;});
 						html+=`</select><br>`;
 						break;
@@ -214,6 +210,7 @@ function getSettingsForm(){
 			html+=`</small>`;
 		});
 		html+=`<input type="submit" value="submit"></form>`;
+		html+=`<button onclick='fetch(esp_url+"/settings?action=restart");alert("Board reset")'>RESET</button>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('brd-form');
@@ -262,20 +259,21 @@ function uploadFile(event){
 			alert('Request Error');
 		}
 		event.target.style.display = 'block';
+		loadbar.style.display = 'none';
 	};
 
 	xhttp.ontimeout = function(e) {
 		info.innerHTML='Error: request timed out';
 		event.target.style.display = 'block';
+		loadbar.style.display = 'none';
 	};
 
 	xhttp.timeout = 120000;
 	xhttp.open("POST",event.target.action, true);
+	loadbar.style.display = 'block';
 	event.target.style.display = 'none';
 	xhttp.send(data);
 }
-
-getNavbar(document.getElementById('navbar'));
 
 suplaStats();
 netStats();

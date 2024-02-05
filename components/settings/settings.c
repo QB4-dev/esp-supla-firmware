@@ -9,6 +9,7 @@
 #include "include/settings.h"
 
 #include <stdio.h>
+#include <esp_system.h>
 #include <esp_log.h>
 #include <esp_err.h>
 #include <nvs_flash.h>
@@ -297,8 +298,10 @@ esp_err_t settings_httpd_handler(httpd_req_t *req)
             if (httpd_query_key_value(url_query, "action", value, sizeof(value)) == ESP_OK) {
                 if(!strcmp(value,"set")){
                     set_req_handle(req);
-                }if(!strcmp(value,"erase")){
-                    settings_nvs_erase();
+                } else if(!strcmp(value,"restart")){
+                    send_json_response(js,req);
+                    esp_restart();
+                    return ESP_OK;
                 }
             }
         }
