@@ -61,6 +61,11 @@ function tab(e, id) {
   e.currentTarget.className += " active";
 }
 
+function reset(e) {
+	fetch(esp_url+"/settings?action=restart");
+	alert("Board reset - disconnected")
+}
+
 function suplaStats(){
 	fetch(esp_url+"/supla")
 	.then(r => r.json())
@@ -210,7 +215,7 @@ function getSettingsForm(){
 			html+=`</small>`;
 		});
 		html+=`<input type="submit" value="submit"></form>`;
-		html+=`<button onclick='fetch(esp_url+"/settings?action=restart");alert("Board reset")'>RESET</button>`;
+		html+=`<button onclick='reset()'>RESET</button>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('brd-form');
