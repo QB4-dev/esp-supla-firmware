@@ -6,23 +6,57 @@
  */
 
 
-#include <click-input.h>
-
 #include "board.h"
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include "freertos/event_groups.h"
 
+#include <click-input.h>
 #include <ledc-channel.h>
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_0
 
+#define IN1_SETTINGS_GR "IN1"
+#define IN2_SETTINGS_GR "IN2"
+
 static const char *TAG="BSP";
+
+static setting_t input1_settings[] = {
+    {
+        .label = "OFF_DELAY",
+        .type = SETTING_TYPE_NUM,
+        .num = { 1, 1, {1,600} }
+    },
+    {}
+};
+
+static setting_t input2_settings[] = {
+    {
+        .label = "OFF_DELAY",
+        .type = SETTING_TYPE_NUM,
+        .num = { 1, 1, {1,600} }
+    },
+    {}
+};
+
+static const settings_group_t board_settings_pack[] = {
+        {
+            .label = IN1_SETTINGS_GR,
+            .settings = input1_settings
+        },
+        {
+            .label = IN2_SETTINGS_GR,
+            .settings = input2_settings
+        },
+        {}
+};
+
 
 static bsp_t brd_esp01_dimmer =
 {
-    .id = "ESP-01 Dimmer"
+    .id = "ESP-01 Dimmer",
+    .settings_pack = board_settings_pack
 };
 
 bsp_t * const bsp = &brd_esp01_dimmer;
@@ -45,6 +79,7 @@ static void detect_cb(input_event_t event, void *arg)
     supla_channel_t *ch = arg;
     TSD_SuplaChannelNewValue new_value = {};
     TRGBW_Value *rgbw = (TRGBW_Value*)&new_value.value;
+    uint8_t brightness;
     EventBits_t bits = device_get_event_bits();
 
     ESP_LOGI(TAG, "detect_cb event = %s", events[event]);
@@ -63,10 +98,11 @@ static void detect_cb(input_event_t event, void *arg)
                 device_exit_config();
             break;
         case INPUT_EVENT_DONE:
-            if(!(bits & DEVICE_CONFIG_EVENT_BIT)){
+            supla_ledc_channel_get_brightness(ledc_channel,&brightness);
+            if(brightness){
                 new_value.DurationMS = 5000;
-                rgbw->brightness = 100;
-                supla_ledc_channel_set_brightness(ch,&new_value);
+                rgbw->brightness = brightness;
+                supla_ledc_channel_set_brightness(ledc_channel,&new_value);
             }
             break;
         default:
@@ -97,6 +133,7 @@ esp_err_t board_early_init(void)
 
 esp_err_t board_init(supla_dev_t *dev)
 {
+    settings_nvs_read(bsp->settings_pack);
     struct ledc_channel_config ledc_channel_conf = {
             .gpio = GPIO_NUM_3,
             .ledc_channel = LEDC_CHANNEL_0,
@@ -109,6 +146,7 @@ esp_err_t board_init(supla_dev_t *dev)
         .action_trigger_caps =
             SUPLA_ACTION_CAP_TURN_ON |
             SUPLA_ACTION_CAP_TURN_OFF,
+        .related_channel = &ledc_channel,
         .on_detect_cb = detect_cb,
         .arg = ledc_channel
     };
@@ -117,6 +155,7 @@ esp_err_t board_init(supla_dev_t *dev)
         .action_trigger_caps =
             SUPLA_ACTION_CAP_TURN_ON |
             SUPLA_ACTION_CAP_TURN_OFF,
+        .related_channel = &ledc_channel,
         .on_detect_cb = detect_cb,
         .arg = ledc_channel
     };

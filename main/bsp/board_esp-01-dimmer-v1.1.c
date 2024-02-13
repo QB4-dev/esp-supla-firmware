@@ -6,8 +6,6 @@
  */
 
 
-#include <click-input.h>
-
 #include "board.h"
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
@@ -41,7 +39,7 @@ static setting_t input1_settings[] = {
     },{
         .label = "OFF_DELAY",
         .type = SETTING_TYPE_NUM,
-        .num = { ACTIVE_HIGH, 1, {1,600} }
+        .num = { 1, 1, {1,600} }
     },
     {}
 };
@@ -54,7 +52,7 @@ static setting_t input2_settings[] = {
     },{
         .label = "OFF_DELAY",
         .type = SETTING_TYPE_NUM,
-        .num = { ACTIVE_HIGH, 1, {1,600} }
+        .num = { 1, 1, {1,600} }
     },
     {}
 };

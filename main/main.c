@@ -27,12 +27,8 @@
 static const char *TAG="APP";
 
 static supla_dev_t *supla_dev;
+static struct supla_config supla_config;
 static char ap_ssid[32];
-
-static struct supla_config supla_config = {
-    .email = CONFIG_SUPLA_EMAIL,
-    .server = CONFIG_SUPLA_SERVER
-};
 
 static void net_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
