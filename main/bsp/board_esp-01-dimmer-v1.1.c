@@ -22,6 +22,7 @@
 
 #define IN1_SETTINGS_GR "IN1"
 #define IN2_SETTINGS_GR "IN2"
+#define REDUCTION_GR "REDUCED"
 
 static const char *TAG="BSP";
 
@@ -33,11 +34,13 @@ static const char *active_level_labels[] = {
 
 static setting_t input1_settings[] = {
     {
-        .label = "ACTIVE_LVL",
+        .id = "ACTIVE_LVL",
+        .label = "ACTIVE LEVEL",
         .type = SETTING_TYPE_ONEOF,
         .oneof = { ACTIVE_HIGH, ACTIVE_HIGH, active_level_labels }
     },{
-        .label = "OFF_DELAY",
+        .id = "OFF_DELAY",
+        .label = "OFF DELAY",
         .type = SETTING_TYPE_NUM,
         .num = { 1, 1, {1,600} }
     },
@@ -46,25 +49,59 @@ static setting_t input1_settings[] = {
 
 static setting_t input2_settings[] = {
     {
-        .label = "ACTIVE_LVL",
+        .id = "ACTIVE_LVL",
+        .label = "ACTIVE LEVEL",
         .type = SETTING_TYPE_ONEOF,
         .oneof = { ACTIVE_HIGH, ACTIVE_HIGH, active_level_labels }
     },{
-        .label = "OFF_DELAY",
+        .id = "OFF_DELAY",
+        .label = "OFF DELAY",
         .type = SETTING_TYPE_NUM,
         .num = { 1, 1, {1,600} }
     },
     {}
 };
 
+static setting_t misc_settings[] = {
+    {
+        .id = "EN",
+        .label = "ENABLED",
+        .type = SETTING_TYPE_BOOL,
+        .boolean = { false, false }
+    },{
+        .id = "BR",
+        .label = "BRIGHTNESS",
+        .type = SETTING_TYPE_NUM,
+        .num = { 100, 100, {0,100} }
+    },{
+        .id = "FROM",
+        .label = "FROM",
+        .type = SETTING_TYPE_TIME,
+        .time = { 12, 35 }
+    },{
+        .id = "TO",
+        .label = "TO",
+        .type = SETTING_TYPE_TIME,
+        .time = { 14, 10 }
+    },
+    {}
+};
+
 static const settings_group_t board_settings_pack[] = {
         {
+            .id = IN1_SETTINGS_GR,
             .label = IN1_SETTINGS_GR,
             .settings = input1_settings
         },
         {
-            .label = IN2_SETTINGS_GR,
+            .id = IN2_SETTINGS_GR,
+            .label = IN1_SETTINGS_GR,
             .settings = input2_settings
+        },
+        {
+            .id = REDUCTION_GR,
+            .label = "REDUCE BRIGHTNESS",
+            .settings = misc_settings
         },
         {}
 };
@@ -88,6 +125,38 @@ static supla_channel_t *ledc_channel;
 esp_err_t board_early_init(void)
 {
     return ESP_OK;
+}
+static int time_is_between(int start_hh, int start_mm, int end_hh, int end_mm) {
+    struct tm *lt;
+    time_t now;
+    int hh, mm;
+
+    time(&now);
+    lt = localtime(&now);
+
+    hh = lt->tm_hour;
+    mm = lt->tm_min;
+
+    int start_time_mm = start_hh * 60 + start_mm;
+    int end_time_mm = end_hh * 60 + end_mm;
+    int time_mm = hh * 60 + mm;
+
+    if(start_time_mm < end_time_mm)
+        return (time_mm >= start_time_mm && time_mm <= end_time_mm);
+    else
+        return (time_mm >= start_time_mm && time_mm >= end_time_mm);
+}
+
+static bool brightness_reduction_active(void)
+{
+    setting_t *enabled = settings_pack_find(bsp->settings_pack,REDUCTION_GR,"EN");
+    setting_t *from = settings_pack_find(bsp->settings_pack,REDUCTION_GR,"FROM");
+    setting_t *to = settings_pack_find(bsp->settings_pack,REDUCTION_GR,"TO");
+
+    if(!enabled || !enabled->boolean.val || !from || !to)
+        return false;
+
+    return time_is_between(from->time.hh,from->time.mm,to->time.hh,to->time.mm);
 }
 
 static void config_btn_calback(gpio_num_t pin_num,exp_input_event_t event,void *arg)
@@ -125,11 +194,12 @@ static void input_calback(gpio_num_t pin_num,exp_input_event_t event,void *arg)
     TSD_SuplaChannelNewValue new_value = {};
     TRGBW_Value *rgbw = (TRGBW_Value*)&new_value.value;
     uint8_t brightness;
-    setting_t *off_delay_set = NULL;
     const char *gr = (pin_num == GPIO_NUM_1) ? IN1_SETTINGS_GR:
                      (pin_num == GPIO_NUM_2) ? IN2_SETTINGS_GR:NULL;
 
-    off_delay_set = settings_pack_find(bsp->settings_pack,gr,"OFF_DELAY");
+    setting_t *off_delay_set = settings_pack_find(bsp->settings_pack,gr,"OFF_DELAY");
+    setting_t *reduced_br_set = settings_pack_find(bsp->settings_pack,REDUCTION_GR,"BR");
+
     EventBits_t bits = device_get_event_bits();
     if(bits & DEVICE_CONFIG_EVENT_BIT)
         return;
@@ -137,7 +207,12 @@ static void input_calback(gpio_num_t pin_num,exp_input_event_t event,void *arg)
     switch (event) {
         case EXP_INPUT_EVENT_INIT:
             ESP_LOGI(TAG,"input %d init",pin_num);
-            rgbw->brightness = 100;
+            if(brightness_reduction_active()){
+                rgbw->brightness = reduced_br_set ? reduced_br_set->num.val : 100;
+                ESP_LOGW(TAG,"reduced brightness to %d",rgbw->brightness);
+            } else {
+                rgbw->brightness = 100;
+            }
             supla_ledc_channel_set_brightness(ledc_channel,&new_value);
             break;
         case EXP_INPUT_EVENT_DONE:
@@ -175,6 +250,8 @@ esp_err_t board_init(supla_dev_t *dev)
     setting_t *active_lvl_set = NULL;
 
     settings_nvs_read(bsp->settings_pack);
+    //settings_pack_print(bsp->settings_pack);
+
     ESP_ERROR_CHECK(i2cdev_init());
     ESP_ERROR_CHECK(pca9557_init_desc(&pca9536, PCA9536_I2C_ADDR, I2C_NUM_0, GPIO_NUM_0, GPIO_NUM_2));
 

@@ -157,6 +157,6 @@ void app_main()
     ESP_ERROR_CHECK(webserver_use_settings(bsp->settings_pack));
 
     xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
-    //webserver_start(&supla_dev);//REMOVE LATER
+    webserver_start(&supla_dev);//REMOVE LATER
     wifi_set_station_mode();
 }

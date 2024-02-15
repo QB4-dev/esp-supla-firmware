@@ -198,15 +198,19 @@ function getSettingsForm(){
 			gr.settings.forEach((item, i) => {
 				switch (item.type) {
 					case "BOOL":
-						html+=`<input type="checkbox" name="${gr.label}:${item.label}" ${item.val?"checked":''}>${item.label}<br>`;
+						html+=`<input type="checkbox" name="${gr.id}:${item.id}" ${item.val?"checked":''}>${item.label}<br>`;
 						break;
 					case "NUM":
-						html+=`<span class="label-inline">${item.label}</span><input type="number" name="${gr.label}:${item.label}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
+						html+=`<span class="label-inline">${item.label}</span><input type="number" name="${gr.id}:${item.id}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
 						break;
 					case "ONEOF":
-						html+=`<span class="label-inline">${item.label}</span><select name="${gr.label}:${item.label}" style="width:160px">`;
-						item.labels.forEach((label, i) => { html+=` <option value=${i} ${item.val==i?"selected":''}>${label}</option>`;});
+						html+=`<span class="label-inline">${item.label}</span><select name="${gr.id}:${item.id}" style="width:160px">`;
+						item.options.forEach((txt, i) => { html+=` <option value=${i} ${item.val==i?"selected":''}>${txt}</option>`;});
 						html+=`</select><br>`;
+						break;
+					case "TIME":
+						let time = String(item.hh).padStart(2,'0')+":"+String(item.mm).padStart(2,'0');
+						html+=`<span class="label-inline">${item.label}</span><input type="time" name="${gr.id}:${item.id}" min="00:00" max="23:59" value="${time}"/><br>`;
 						break;
 					default:
 						break;

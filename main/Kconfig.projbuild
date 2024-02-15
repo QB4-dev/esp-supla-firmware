@@ -19,31 +19,3 @@ menu "Board Select"
 
 	endchoice
 endmenu
-
-menu "Example Configuration"
-
-    config ESP_WIFI_SSID
-        string "WiFi SSID"
-        default "myssid"
-        help
-            SSID (network name) for the example to connect to.
-
-    config ESP_WIFI_PASSWORD
-        string "WiFi Password"
-        default "mypassword"
-        help
-            WiFi password (WPA or WPA2) for the example to use.
-
-    config SUPLA_EMAIL
-        string "SUPLA email address"
-        default "user@example.com"
-        help
-            SUPLA account email address for the example to use.
-
-    config SUPLA_SERVER
-        string "SUPLA server address"
-        default "svrX.supla.org"
-        help
-            SUPLA server address for the example to use.
-
-endmenu
