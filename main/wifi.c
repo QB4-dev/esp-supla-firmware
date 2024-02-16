@@ -52,7 +52,6 @@ esp_err_t wifi_set_access_point_mode(const char *ap_ssid)
         .ap = {
             .max_connection = 1,
             .authmode = WIFI_AUTH_OPEN,
-            .password = "",
         },
     };
 

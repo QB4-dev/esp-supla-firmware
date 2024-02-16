@@ -95,7 +95,7 @@ static const settings_group_t board_settings_pack[] = {
         },
         {
             .id = IN2_SETTINGS_GR,
-            .label = IN1_SETTINGS_GR,
+            .label = IN2_SETTINGS_GR,
             .settings = input2_settings
         },
         {
@@ -126,6 +126,7 @@ esp_err_t board_early_init(void)
 {
     return ESP_OK;
 }
+
 static int time_is_between(int start_hh, int start_mm, int end_hh, int end_mm) {
     struct tm *lt;
     time_t now;

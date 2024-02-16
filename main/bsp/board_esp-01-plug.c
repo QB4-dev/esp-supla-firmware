@@ -20,46 +20,34 @@
 
 static const char *TAG="BSP";
 
+static const settings_group_t board_settings_pack[] = {
+        {}
+};
+
+
 static bsp_t brd_esp01_dht =
 {
-    .id = "ESP-01 DHT"
+    .id = "ESP-01 USB",
+    .settings_pack = board_settings_pack
 };
 
 bsp_t * const bsp = &brd_esp01_dht;
 
 static supla_channel_t *dht_channel;
-static EventGroupHandle_t bsp_event_group;
-
-#define CONFIG_MODE_BIT BIT0
-
-static esp_err_t board_config_mode_init(void)
-{
-    xEventGroupSetBits(bsp_event_group, CONFIG_MODE_BIT);
-    device_init_config();
-    return ESP_OK;
-}
-
-static esp_err_t board_config_mode_exit(void)
-{
-    xEventGroupClearBits(bsp_event_group, CONFIG_MODE_BIT);
-    device_exit_config();
-    return ESP_OK;
-}
 
 static void button_cb(button_t *btn, button_state_t state)
 {
-    EventBits_t bits = xEventGroupWaitBits(bsp_event_group,CONFIG_MODE_BIT,0,0,1);
-
+    EventBits_t bits = device_get_event_bits();
     switch (state) {
         case BUTTON_CLICKED:
             ESP_LOGI(TAG, "btn clicked");
             break;
         case BUTTON_PRESSED_LONG:
             ESP_LOGI(TAG, "btn pressed long");
-            if(!(bits & CONFIG_MODE_BIT))
-                board_config_mode_init();
-            else
-                board_config_mode_exit();
+            if(!(bits & DEVICE_CONFIG_EVENT_BIT))
+                 device_init_config();
+             else
+                 device_exit_config();
             break;
         default:
             break;
@@ -71,16 +59,30 @@ static button_t btn = {
     .callback = button_cb
 };
 
+esp_err_t board_early_init(void)
+{
+    return ESP_OK;
+}
+
 esp_err_t board_init(supla_dev_t *dev)
 {
-    bsp_event_group = xEventGroupCreate();
     button_init(&btn);
-    dht_channel = supla_channel_dht_create(DHT_TYPE_DHT11,GPIO_NUM_2,1000);
+    //dht_channel = supla_channel_dht_create(DHT_TYPE_DHT11,GPIO_NUM_2,1000);
 
-    supla_dev_set_name(dev,bsp->id);
-    supla_dev_add_channel(dev,dht_channel);
+    //supla_dev_add_channel(dev,dht_channel);
 
     ESP_LOGI(TAG,"board init completed OK");
     return ESP_OK;
 }
+
+esp_err_t board_on_config_mode_init(void)
+{
+    return ESP_OK;
+}
+
+esp_err_t board_on_config_mode_exit(void)
+{
+    return ESP_OK;
+}
+
 #endif

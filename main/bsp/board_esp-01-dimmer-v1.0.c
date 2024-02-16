@@ -24,7 +24,8 @@ static const char *TAG="BSP";
 
 static setting_t input1_settings[] = {
     {
-        .label = "OFF_DELAY",
+        .id = "OFF_DELAY",
+        .label = "OFF DELAY",
         .type = SETTING_TYPE_NUM,
         .num = { 1, 1, {1,600} }
     },
@@ -33,7 +34,8 @@ static setting_t input1_settings[] = {
 
 static setting_t input2_settings[] = {
     {
-        .label = "OFF_DELAY",
+        .id = "OFF_DELAY",
+        .label = "OFF DELAY",
         .type = SETTING_TYPE_NUM,
         .num = { 1, 1, {1,600} }
     },
@@ -42,10 +44,12 @@ static setting_t input2_settings[] = {
 
 static const settings_group_t board_settings_pack[] = {
         {
+            .id = IN1_SETTINGS_GR,
             .label = IN1_SETTINGS_GR,
             .settings = input1_settings
         },
         {
+            .id = IN2_SETTINGS_GR,
             .label = IN2_SETTINGS_GR,
             .settings = input2_settings
         },
@@ -134,6 +138,7 @@ esp_err_t board_early_init(void)
 esp_err_t board_init(supla_dev_t *dev)
 {
     settings_nvs_read(bsp->settings_pack);
+
     struct ledc_channel_config ledc_channel_conf = {
             .gpio = GPIO_NUM_3,
             .ledc_channel = LEDC_CHANNEL_0,
@@ -141,7 +146,7 @@ esp_err_t board_init(supla_dev_t *dev)
     };
     ledc_channel = supla_ledc_channel_create(&ledc_channel_conf);
 
-    struct click_input_config pir1_conf = {
+    struct click_input_config in1_conf = {
         .gpio = GPIO_NUM_0,
         .action_trigger_caps =
             SUPLA_ACTION_CAP_TURN_ON |
@@ -150,7 +155,7 @@ esp_err_t board_init(supla_dev_t *dev)
         .on_detect_cb = detect_cb,
         .arg = ledc_channel
     };
-    struct click_input_config pir2_conf = {
+    struct click_input_config in2_conf = {
         .gpio = GPIO_NUM_2,
         .action_trigger_caps =
             SUPLA_ACTION_CAP_TURN_ON |
@@ -160,8 +165,8 @@ esp_err_t board_init(supla_dev_t *dev)
         .arg = ledc_channel
     };
 
-    input1_channel = supla_click_input_create(&pir1_conf);
-    input2_channel = supla_click_input_create(&pir2_conf);
+    input1_channel = supla_click_input_create(&in1_conf);
+    input2_channel = supla_click_input_create(&in2_conf);
 
     supla_dev_set_name(dev,bsp->id);
     supla_dev_add_channel(dev,ledc_channel);

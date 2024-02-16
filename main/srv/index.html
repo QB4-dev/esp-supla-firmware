@@ -49,8 +49,8 @@
 
 <script>
 //const esp_url="http://192.168.100.18";
-//const esp_url="http://192.168.4.1";
-const esp_url="";
+const esp_url="http://192.168.4.1";
+//const esp_url="";
 
 function tab(e, id) {
   let content = document.getElementsByClassName("tab");
@@ -161,9 +161,9 @@ function getSuplaConfigForm(){
 		let html = `
 		<form id="supla-form" method="post">
 			Email<br>
-			<input type="text" name="email" value=${js.data.email} style="max-width:300px"><br>
+			<input type="text" name="email" value="${js.data.email}" style="max-width:300px"><br>
 			Server<br>
-			<input type="text" name="server" value=${js.data.server} style="max-width:300px"><br>
+			<input type="text" name="server" value="${js.data.server}" style="max-width:300px"><br>
 			<input type="submit" value="submit">
 		</form>`;
 
