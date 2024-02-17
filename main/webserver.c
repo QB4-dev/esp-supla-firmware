@@ -34,6 +34,7 @@ static const settings_group_t *bsp_settings_pack = NULL;
 
 DECLARE_EMBED_HANDLER(index_html_gz, "/index.html", "text/html");
 DECLARE_EMBED_HANDLER(supla_css_gz, "/supla.css", "text/css");
+DECLARE_EMBED_HANDLER(script_js_gz, "/script.js", "text/javascript");
 static const httpd_uri_t route_get_root = { .uri = "/", .method = HTTP_GET, .handler = get_index_html_gz };
 
 static httpd_uri_t wifi_get_handler = { .uri = "/wifi", .method  = HTTP_GET, .handler = esp_httpd_wifi_handler };
@@ -52,6 +53,7 @@ static esp_err_t init(supla_dev_t **dev)
 {
     // Static file handlers
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_index_html_gz));
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_script_js_gz));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_supla_css_gz));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_root));
 
