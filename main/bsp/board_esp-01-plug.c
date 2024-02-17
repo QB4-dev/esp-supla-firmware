@@ -12,7 +12,7 @@
 #include <freertos/semphr.h>
 #include "freertos/event_groups.h"
 
-#include <ledc-channel.h>
+#include <relay-channel.h>
 #include <dht-sensor.h>
 #include <button.h>
 
@@ -34,6 +34,7 @@ static bsp_t brd_esp01_dht =
 bsp_t * const bsp = &brd_esp01_dht;
 
 static supla_channel_t *dht_channel;
+static supla_channel_t *relay_channel;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
@@ -66,10 +67,15 @@ esp_err_t board_early_init(void)
 
 esp_err_t board_init(supla_dev_t *dev)
 {
+    struct relay_channel_config relay_channel_conf =  {
+        .gpio = GPIO_NUM_2
+    };
+
     button_init(&btn);
     //dht_channel = supla_channel_dht_create(DHT_TYPE_DHT11,GPIO_NUM_2,1000);
+    relay_channel = supla_relay_channel_create(&relay_channel_conf);
 
-    //supla_dev_add_channel(dev,dht_channel);
+    supla_dev_add_channel(dev,relay_channel);
 
     ESP_LOGI(TAG,"board init completed OK");
     return ESP_OK;

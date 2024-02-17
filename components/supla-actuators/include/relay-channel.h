@@ -11,6 +11,11 @@
 #include <libsupla/channel.h>
 #include <driver/gpio.h>
 
-supla_channel_t *supla_relay_channel_create(gpio_num_t gpio);
+struct relay_channel_config {
+    gpio_num_t gpio;
+};
+
+
+supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *config);
 
 #endif /* _SUPLA_RELAY_CHANNEL_H_ */
