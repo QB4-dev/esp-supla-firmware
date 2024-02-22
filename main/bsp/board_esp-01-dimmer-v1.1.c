@@ -13,8 +13,8 @@
 #include "freertos/event_groups.h"
 
 #include <pca9557.h>
-#include <ledc-channel.h>
 #include <exp-input.h>
+#include "../../components/supla-outputs/include/ledc-channel.h"
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_1
 

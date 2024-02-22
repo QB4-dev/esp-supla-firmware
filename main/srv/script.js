@@ -1,7 +1,7 @@
 function tab(e, id) {
-  let content = document.getElementsByClassName("tab");
-  for (var i = 0; i < content.length; i++)
-    content[i].style.display = "none";
+  let tab = document.getElementsByClassName("tab");
+  for (var i = 0; i < tab.length; i++)
+    tab[i].style.display = "none";
 
   document.getElementById(id).style.display = "block";
   e.currentTarget.className += " active";

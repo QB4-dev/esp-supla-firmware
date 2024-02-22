@@ -13,7 +13,8 @@
 #include "freertos/event_groups.h"
 
 #include <click-input.h>
-#include <ledc-channel.h>
+
+#include "../../components/supla-outputs/include/ledc-channel.h"
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_0
 

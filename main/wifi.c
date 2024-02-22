@@ -19,7 +19,11 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#define CHECK_ARG(VAL) do { if (!(VAL)) return ESP_ERR_INVALID_ARG; } while (0)
+#define CHECK_ARG(VAL)                  \
+    do {                                \
+        if (!(VAL))                     \
+            return ESP_ERR_INVALID_ARG; \
+    } while (0)
 
 static const char *TAG = "WiFi";
 
@@ -39,11 +43,11 @@ esp_err_t wifi_init(esp_event_handler_t eh)
 esp_err_t wifi_set_station_mode(void)
 {
     ESP_LOGI(TAG, "set station mode");
-	ESP_ERROR_CHECK(esp_wifi_stop());
-	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-	ESP_ERROR_CHECK(esp_wifi_start());
-	ESP_ERROR_CHECK(esp_wifi_connect());
-	return ESP_OK;
+    ESP_ERROR_CHECK(esp_wifi_stop());
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_connect());
+    return ESP_OK;
 }
 
 esp_err_t wifi_set_access_point_mode(const char *ap_ssid)
@@ -55,15 +59,14 @@ esp_err_t wifi_set_access_point_mode(const char *ap_ssid)
         },
     };
 
-    strncpy((char*)wifi_config.ap.ssid,ap_ssid, sizeof(wifi_config.ap.ssid));
-    wifi_config.ap.ssid_len = strlen((char*)wifi_config.ap.ssid);
+    strncpy((char *)wifi_config.ap.ssid, ap_ssid, sizeof(wifi_config.ap.ssid));
+    wifi_config.ap.ssid_len = strlen((char *)wifi_config.ap.ssid);
 
-    ESP_LOGI(TAG, "set AP mode with SSID: %s",wifi_config.ap.ssid);
+    ESP_LOGI(TAG, "set AP mode with SSID: %s", wifi_config.ap.ssid);
     ESP_ERROR_CHECK(esp_wifi_disconnect());
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config);
     ESP_ERROR_CHECK(esp_wifi_start());
-	return ESP_OK;
+    return ESP_OK;
 }
-

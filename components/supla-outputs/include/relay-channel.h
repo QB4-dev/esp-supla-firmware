@@ -13,8 +13,9 @@
 
 struct relay_channel_config {
     gpio_num_t gpio;
+    int default_function;             //SUPLA_CHANNELFNC_*
+    unsigned int supported_functions; //SUPLA_BIT_FUNC_*
 };
-
 
 supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *config);
 
