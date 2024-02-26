@@ -12,9 +12,7 @@
 #include <esp-supla.h>
 #include <settings.h>
 
-esp_err_t webserver_start(supla_dev_t **dev);
+esp_err_t webserver_start(supla_dev_t **dev, const settings_group_t *settings_pack);
 esp_err_t webserver_stop(void);
-
-esp_err_t webserver_use_settings(const settings_group_t *settings_pack);
 
 #endif /* MAIN_WEBSERVER_H_ */

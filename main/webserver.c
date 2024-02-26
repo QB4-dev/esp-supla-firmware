@@ -15,12 +15,11 @@
 static const char *TAG = "HTTPD";
 
 static httpd_handle_t server = NULL;
-static const settings_group_t *bsp_settings_pack = NULL;
 
 #define DECLARE_EMBED_HANDLER(NAME, URI, CT)                             \
     extern const char embed_##NAME[] asm("_binary_" #NAME "_start");     \
     extern const char size_##NAME[] asm("_binary_" #NAME "_size");       \
-    esp_err_t get_##NAME(httpd_req_t *req)                               \
+    esp_err_t         get_##NAME(httpd_req_t *req)                       \
     {                                                                    \
         httpd_resp_set_type(req, CT);                                    \
         httpd_resp_set_hdr(req, "Content-Encoding", "gzip");             \
@@ -30,46 +29,61 @@ static const settings_group_t *bsp_settings_pack = NULL;
                                                   .method = HTTP_GET,    \
                                                   .handler = get_##NAME }
 
-/// Handlers
-///
-///
-
 DECLARE_EMBED_HANDLER(index_html_gz, "/index.html", "text/html");
 DECLARE_EMBED_HANDLER(supla_css_gz, "/supla.css", "text/css");
 DECLARE_EMBED_HANDLER(script_js_gz, "/script.js", "text/javascript");
-static const httpd_uri_t route_get_root = { .uri = "/",
-                                            .method = HTTP_GET,
-                                            .handler = get_index_html_gz };
 
-static httpd_uri_t wifi_get_handler = { .uri = "/wifi",
-                                        .method = HTTP_GET,
-                                        .handler = esp_httpd_wifi_handler };
-static httpd_uri_t wifi_post_handler = { .uri = "/wifi",
-                                         .method = HTTP_POST,
-                                         .handler = esp_httpd_wifi_handler };
+static const httpd_uri_t route_get_root = {
+    .uri = "/",
+    .method = HTTP_GET,
+    .handler = get_index_html_gz //default
+};
 
-static httpd_uri_t supla_get_handler = { .uri = "/supla",
-                                         .method = HTTP_GET,
-                                         .handler = supla_dev_httpd_handler };
-static httpd_uri_t supla_post_handler = { .uri = "/supla",
-                                          .method = HTTP_POST,
-                                          .handler = supla_dev_httpd_handler };
+static httpd_uri_t wifi_get_handler = {
+    .uri = "/wifi",
+    .method = HTTP_GET,
+    .handler = esp_httpd_wifi_handler //
+};
+static httpd_uri_t wifi_post_handler = {
+    .uri = "/wifi",
+    .method = HTTP_POST,
+    .handler = esp_httpd_wifi_handler //
+};
 
-static httpd_uri_t info_handler = { .uri = "/info",
-                                    .method = HTTP_GET,
-                                    .handler = esp_httpd_app_info_handler };
-static httpd_uri_t fota_handler = { .uri = "/update",
-                                    .method = HTTP_POST,
-                                    .handler = esp_httpd_fota_handler };
+static httpd_uri_t supla_get_handler = {
+    .uri = "/supla",
+    .method = HTTP_GET,
+    .handler = supla_dev_httpd_handler //
+};
+static httpd_uri_t supla_post_handler = {
+    .uri = "/supla",
+    .method = HTTP_POST,
+    .handler = supla_dev_httpd_handler //
+};
 
-static httpd_uri_t settings_get_handler = { .uri = "/settings",
-                                            .method = HTTP_GET,
-                                            .handler = settings_httpd_handler };
-static httpd_uri_t settings_post_handler = { .uri = "/settings",
-                                             .method = HTTP_POST,
-                                             .handler = settings_httpd_handler };
+static httpd_uri_t info_handler = {
+    .uri = "/info",
+    .method = HTTP_GET,
+    .handler = esp_httpd_app_info_handler //
+};
+static httpd_uri_t fota_handler = {
+    .uri = "/update",
+    .method = HTTP_POST,
+    .handler = esp_httpd_fota_handler //
+};
 
-static esp_err_t init(supla_dev_t **dev)
+static httpd_uri_t settings_get_handler = {
+    .uri = "/settings",
+    .method = HTTP_GET,
+    .handler = settings_httpd_handler //
+};
+static httpd_uri_t settings_post_handler = {
+    .uri = "/settings",
+    .method = HTTP_POST,
+    .handler = settings_httpd_handler //
+};
+
+static esp_err_t init(supla_dev_t **dev, const settings_group_t *settings_pack)
 {
     // Static file handlers
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &route_get_index_html_gz));
@@ -89,18 +103,16 @@ static esp_err_t init(supla_dev_t **dev)
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &info_handler));
     ESP_ERROR_CHECK(httpd_register_uri_handler(server, &fota_handler));
 
-    if (bsp_settings_pack != NULL) {
-        settings_get_handler.user_ctx = (void *)bsp_settings_pack;
-        settings_post_handler.user_ctx = (void *)bsp_settings_pack;
+    if (settings_pack != NULL) {
+        settings_get_handler.user_ctx = (void *)settings_pack;
+        settings_post_handler.user_ctx = (void *)settings_pack;
         ESP_ERROR_CHECK(httpd_register_uri_handler(server, &settings_get_handler));
         ESP_ERROR_CHECK(httpd_register_uri_handler(server, &settings_post_handler));
     }
     return ESP_OK;
 }
 
-/// Public
-
-esp_err_t webserver_start(supla_dev_t **dev)
+esp_err_t webserver_start(supla_dev_t **dev, const settings_group_t *settings_pack)
 {
     if (server) {
         ESP_LOGI(TAG, "server started, trying to stop...");
@@ -112,7 +124,7 @@ esp_err_t webserver_start(supla_dev_t **dev)
     config.lru_purge_enable = true;
 
     ESP_ERROR_CHECK(httpd_start(&server, &config));
-    ESP_ERROR_CHECK(init(dev));
+    ESP_ERROR_CHECK(init(dev, settings_pack));
 
     ESP_LOGI(TAG, "server started on port %d, free mem: %d bytes", config.server_port,
              esp_get_free_heap_size());
@@ -129,13 +141,4 @@ esp_err_t webserver_stop(void)
         return rc;
     }
     return ESP_ERR_NOT_FOUND;
-}
-
-esp_err_t webserver_use_settings(const settings_group_t *settings_pack)
-{
-    if (server)
-        return ESP_ERR_INVALID_STATE;
-
-    bsp_settings_pack = settings_pack;
-    return ESP_OK;
 }

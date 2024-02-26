@@ -13,6 +13,7 @@
 #include <esp_event.h>
 
 esp_err_t wifi_init(esp_event_handler_t eh);
+bool      wifi_sta_configured(void);
 
 esp_err_t wifi_set_station_mode(void);
 esp_err_t wifi_set_access_point_mode(const char *ap_ssid);

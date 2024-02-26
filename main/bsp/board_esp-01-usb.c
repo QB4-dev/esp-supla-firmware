@@ -15,7 +15,7 @@
 #include <dht-sensor.h>
 #include <relay-channel.h>
 
-#ifdef CONFIG_BSP_ESP01_PLUG_DHT
+#ifdef CONFIG_BSP_ESP01_USB
 
 static const char *TAG = "BSP";
 

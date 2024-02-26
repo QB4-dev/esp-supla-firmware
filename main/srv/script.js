@@ -165,7 +165,7 @@ function getSettingsForm(){
 			html+=`</small>`;
 		});
 		html+=`<input type="submit" value="submit"></form>`;
-		html+=`<button onclick='reset()'>RESET</button>`;
+		html+=`<button onclick='reset()'>RESTART</button>`;
 
 		div.innerHTML = html;
 		const form = document.getElementById('brd-form');

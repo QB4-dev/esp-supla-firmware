@@ -1,5 +1,5 @@
 /*
- * dht.h
+ * relay-channel.h
  *
  *  Created on: 31 sty 2023
  *      Author: kuba
@@ -12,8 +12,8 @@
 #include <driver/gpio.h>
 
 struct relay_channel_config {
-    gpio_num_t gpio;
-    int default_function;             //SUPLA_CHANNELFNC_*
+    gpio_num_t   gpio;
+    int          default_function;    //SUPLA_CHANNELFNC_*
     unsigned int supported_functions; //SUPLA_BIT_FUNC_*
 };
 

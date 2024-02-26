@@ -14,8 +14,8 @@ menu "Board Select"
 	config BSP_ESP01_RGBW
 	    bool "ESP-01 RGBW"
 
-	config BSP_ESP01_PLUG_DHT
-	    bool "ESP-01 PLUG DHT"
+	config BSP_ESP01_USB
+	    bool "ESP-01 USB"
 
 	endchoice
 endmenu
