@@ -13,15 +13,16 @@
 #include <esp_log.h>
 #include <esp-supla.h>
 #include <driver/gpio.h>
+
+#include <device.h>
 #include <settings.h>
-#include "../device.h"
 
 typedef struct {
-    const char *id;
+    const char             *id;
     const settings_group_t *settings_pack;
-}bsp_t;
+} bsp_t;
 
-extern bsp_t * const bsp;
+extern bsp_t *const bsp;
 
 esp_err_t board_early_init(void);
 esp_err_t board_init(supla_dev_t *dev);

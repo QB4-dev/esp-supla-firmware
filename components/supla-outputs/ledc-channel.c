@@ -5,17 +5,17 @@
 
 struct ledc_channel_data {
     ledc_channel_config_t ledc;
-    uint8_t brightness;
-    uint8_t base_brightness;
-    uint32_t fade_time;
-    uint32_t duty_res;
-    esp_timer_handle_t timer;
+    uint8_t               brightness;
+    uint8_t               base_brightness;
+    uint32_t              fade_time;
+    uint32_t              duty_res;
+    esp_timer_handle_t    timer;
 };
 
 static void deferred_fade_out(void *ch)
 {
-    TSD_SuplaChannelNewValue new_value = {};
-    TRGBW_Value *rgbw = (TRGBW_Value *)&new_value.value;
+    TSD_SuplaChannelNewValue  new_value = {};
+    TRGBW_Value              *rgbw = (TRGBW_Value *)&new_value.value;
     struct ledc_channel_data *data = supla_channel_get_data(ch);
     rgbw->brightness = data->base_brightness;
     supla_ledc_channel_set_brightness(ch, &new_value);
@@ -24,8 +24,8 @@ static void deferred_fade_out(void *ch)
 int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
-    TRGBW_Value *rgbw = (TRGBW_Value *)new_value->value;
-    uint32_t duty = (rgbw->brightness * data->duty_res) / 100;
+    TRGBW_Value              *rgbw = (TRGBW_Value *)new_value->value;
+    uint32_t                  duty = (rgbw->brightness * data->duty_res) / 100;
     data->brightness = rgbw->brightness;
 
     esp_timer_stop(data->timer);
@@ -52,7 +52,7 @@ int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness)
 int supla_ledc_channel_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
-    TRGBW_Value *rgbw = (TRGBW_Value *)new_value->value;
+    TRGBW_Value              *rgbw = (TRGBW_Value *)new_value->value;
     data->base_brightness = rgbw->brightness;
 
     return supla_ledc_channel_set_brightness(ch, new_value);
@@ -79,10 +79,10 @@ supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *led
         .on_set_value = supla_ledc_channel_set_base_brightness
     };
     ledc_timer_config_t ledc_timer_conf = {
-        .timer_num = LEDC_TIMER_0, // timer index
+        .timer_num = LEDC_TIMER_0,            // timer index
         .duty_resolution = LEDC_TIMER_13_BIT, // resolution of PWM duty
-        .speed_mode = LEDC_LOW_SPEED_MODE, // timer mode
-        .freq_hz = 200, // frequency of PWM signal
+        .speed_mode = LEDC_LOW_SPEED_MODE,    // timer mode
+        .freq_hz = 200,                       // frequency of PWM signal
     };
     esp_timer_create_args_t timer_args = {
         .name = "ledc-off",

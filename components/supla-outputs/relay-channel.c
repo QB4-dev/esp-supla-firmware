@@ -6,8 +6,8 @@
 
 struct relay_channel_data {
     gpio_num_t         gpio;
-    uint32_t           seconds_left;
     esp_timer_handle_t timer;
+    uint32_t           seconds_left;
 };
 
 static int supla_relay_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
@@ -40,13 +40,11 @@ static int supla_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
     switch (active_func) {
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
         TChannelConfig_StaircaseTimer *timer_conf = (TChannelConfig_StaircaseTimer *)config->Config;
-
         supla_log(LOG_INFO, "staircase config: %dms", timer_conf->TimeMS);
     } break;
     default:
         break;
     }
-
     return ESP_OK;
 }
 

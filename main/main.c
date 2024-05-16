@@ -19,8 +19,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#include "device.h"
-#include "bsp/board.h"
+#include <device.h>
+#include <board.h>
+
 #include "wifi.h"
 #include "webserver.h"
 

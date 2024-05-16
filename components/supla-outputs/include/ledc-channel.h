@@ -13,9 +13,9 @@
 #include <driver/gpio.h>
 
 struct ledc_channel_config {
-    gpio_num_t gpio;
+    gpio_num_t     gpio;
     ledc_channel_t ledc_channel;
-    uint32_t fade_time; //ms
+    uint32_t       fade_time; //ms
 };
 
 supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *ledc_ch_conf);
@@ -23,8 +23,8 @@ supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *led
 int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness);
 
-int supla_ledc_channel_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+int supla_ledc_channel_set_base_brightness(supla_channel_t          *ch,
+                                           TSD_SuplaChannelNewValue *new_value);
 int supla_ledc_channel_get_base_brightness(supla_channel_t *ch, uint8_t *brightness);
-
 
 #endif /* _SUPLA_SENSORS_DHT_H_ */

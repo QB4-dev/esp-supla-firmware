@@ -5,8 +5,6 @@
  *      Author: kuba
  */
 
-#include <click-input.h>
-
 #include "board.h"
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
@@ -14,6 +12,7 @@
 #include "freertos/event_groups.h"
 
 #include <button.h>
+#include <generic-input.h>
 #include <rgbw-channel.h>
 
 #ifdef CONFIG_BSP_ESP01_RGBW

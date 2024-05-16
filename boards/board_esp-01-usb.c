@@ -27,6 +27,7 @@ bsp_t *const bsp = &brd_esp01_usb;
 
 static supla_channel_t *dht_channel;
 static supla_channel_t *relay_channel;
+static supla_dev_t     *supla_dev;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
@@ -34,6 +35,7 @@ static void button_cb(button_t *btn, button_state_t state)
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
+        supla_dev_send_notification(supla_dev, -1, "ESP-01", "PUSH notification", 0);
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");
@@ -69,6 +71,9 @@ esp_err_t board_init(supla_dev_t *dev)
 
     supla_dev_add_channel(dev, relay_channel);
 
+    supla_dev_enable_notifications(dev, 0x00);
+
+    supla_dev = dev; //store pointer
     ESP_LOGI(TAG, "board init completed OK");
     return ESP_OK;
 }
