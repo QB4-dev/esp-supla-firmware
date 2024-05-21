@@ -9,10 +9,10 @@
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
-#include <generic-input.h>
 #include "freertos/event_groups.h"
 
-#include "../../components/supla-outputs/include/ledc-channel.h"
+#include <generic-input.h>
+#include "<ledc-channel.h>
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_0
 

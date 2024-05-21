@@ -23,7 +23,7 @@ struct input_data {
     void               *cb_arg;
 };
 
-static void click_input_poll(void *arg)
+static void input_poll(void *arg)
 {
     supla_channel_t       *ch = arg;
     supla_channel_config_t ch_config;
@@ -105,7 +105,7 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     esp_timer_create_args_t timer_args = {
         .name = "input",
         .dispatch_method = ESP_TIMER_TASK,
-        .callback = click_input_poll,
+        .callback = input_poll,
     };
     struct input_data *data;
 

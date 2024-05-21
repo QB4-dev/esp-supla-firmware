@@ -12,6 +12,7 @@
 #include "freertos/event_groups.h"
 
 #include <button.h>
+#include <generic-input.h>
 #include <dht-sensor.h>
 #include <relay-channel.h>
 
@@ -26,6 +27,7 @@ static bsp_t brd_esp01_usb = { .id = "ESP-01 USB", .settings_pack = board_settin
 bsp_t *const bsp = &brd_esp01_usb;
 
 static supla_channel_t *dht_channel;
+static supla_channel_t *input_channel;
 static supla_channel_t *relay_channel;
 static supla_dev_t     *supla_dev;
 
@@ -61,8 +63,8 @@ esp_err_t board_init(supla_dev_t *dev)
     struct relay_channel_config relay_channel_conf = {
         .gpio = GPIO_NUM_2,
         .default_function = SUPLA_CHANNELFNC_STAIRCASETIMER,
-        .supported_functions = SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH |
-                               SUPLA_BIT_FUNC_STAIRCASETIMER
+        .supported_functions = 0xff
+        //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
     };
 
     button_init(&btn);

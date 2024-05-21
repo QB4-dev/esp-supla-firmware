@@ -6,6 +6,7 @@
 PROJECT_NAME := esp_supla_firmware
 
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/boards
+EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/boards/bsp
 EXTRA_COMPONENT_DIRS += $(PROJECT_PATH)/components/esp-idf-lib/components
 
 EXCLUDE_COMPONENTS := max7219 ads130e08 mcp23x17 led_strip max31865 ls7366r max31855 encoder
