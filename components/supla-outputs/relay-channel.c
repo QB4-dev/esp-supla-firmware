@@ -17,7 +17,7 @@ static int supla_relay_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_va
     TTimerState_ExtendedValue  timer_state = {};
 
     esp_timer_stop(data->timer);
-    gpio_set_level(data->gpio, !relay_val->hi);
+    gpio_set_level(data->gpio, relay_val->hi);
     data->seconds_left = new_value->DurationMS / 1000;
 
     if (new_value->DurationMS) {
@@ -55,8 +55,6 @@ static void countdown_timer_event(void *ch)
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
     data->seconds_left--;
-    supla_log(LOG_DEBUG, "relay countdown timer %d s left", data->seconds_left);
-
     timer_state.RemainingTimeMs = data->seconds_left * 1000;
 
     if (data->seconds_left > 0) {
@@ -103,6 +101,7 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     data->gpio = config->gpio;
 
     gpio_config(&gpio_conf);
+    gpio_set_level(data->gpio, 0);
 
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);

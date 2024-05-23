@@ -5,19 +5,17 @@
  *      Author: kuba
  */
 
-#include "board.h"
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include "freertos/event_groups.h"
 
+#include <board.h>
 #include <pca9557.h>
 #include <exp-input.h>
 #include <ledc-channel.h>
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_1
-
-#define PCA9536_I2C_ADDR 0x41
 
 #define IN1_SETTINGS_GR "IN1"
 #define IN2_SETTINGS_GR "IN2"
@@ -59,14 +57,16 @@ static setting_t brightness_settings[] = {
     {} //last element
 };
 
-static const settings_group_t board_settings_pack[] = {
+static const settings_group_t board_settings[] = {
     { .id = IN1_SETTINGS_GR, .label = IN1_SETTINGS_GR, .settings = input1_settings },
     { .id = IN2_SETTINGS_GR, .label = IN2_SETTINGS_GR, .settings = input2_settings },
     { .id = REDUCTION_GR, .label = "REDUCE BRIGHTNESS", .settings = brightness_settings },
     {}
 };
 
-static bsp_t brd_esp01_dimmer = { .id = "ESP01_DIMMER", .settings_pack = board_settings_pack };
+static bsp_t brd_esp01_dimmer = { .id = "ESP01_DIMMER",
+                                  .ver = "1.1",
+                                  .settings_pack = board_settings };
 
 bsp_t *const bsp = &brd_esp01_dimmer;
 
@@ -260,7 +260,7 @@ esp_err_t board_init(supla_dev_t *dev)
     supla_dev_add_channel(dev, input1_channel);
     supla_dev_add_channel(dev, input2_channel);
 
-    xTaskCreate(&pulse_task, "pulse", 2048, NULL, 1, NULL);
+    xTaskCreate(&pulse_task, "pulse", 2048, NULL, tskIDLE_PRIORITY, NULL);
     ESP_LOGI(TAG, "board init completed OK");
     return ESP_OK;
 }
@@ -276,8 +276,7 @@ esp_err_t board_on_config_mode_init(void)
 esp_err_t board_on_config_mode_exit(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
-    TRGBW_Value             *rgbw = (TRGBW_Value *)&new_value.value;
-    rgbw->brightness = 100;
+
     supla_ledc_channel_set_brightness(ledc_channel, &new_value);
     return ESP_OK;
 }

@@ -8,17 +8,14 @@
 #ifndef MAIN_BSP_BOARD_H_
 #define MAIN_BSP_BOARD_H_
 
-#include <esp_system.h>
 #include <esp_err.h>
-#include <esp_log.h>
-#include <esp-supla.h>
-#include <driver/gpio.h>
-
 #include <device.h>
 #include <settings.h>
+#include <esp-supla.h>
 
 typedef struct {
     const char             *id;
+    const char             *ver;
     const settings_group_t *settings_pack;
 } bsp_t;
 

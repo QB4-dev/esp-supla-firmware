@@ -5,14 +5,14 @@
  *      Author: kuba
  */
 
-#include "board.h"
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include "freertos/event_groups.h"
 
+#include <board.h>
 #include <generic-input.h>
-#include "<ledc-channel.h>
+#include <ledc-channel.h>
 
 #ifdef CONFIG_BSP_ESP01_DIMMER_v1_0
 
@@ -33,13 +33,15 @@ static setting_t input2_settings[] = { { .id = "OFF_DELAY",
                                          .num = { 1, 1, { 1, 600 } } },
                                        {} };
 
-static const settings_group_t board_settings_pack[] = {
+static const settings_group_t board_settings[] = {
     { .id = IN1_SETTINGS_GR, .label = IN1_SETTINGS_GR, .settings = input1_settings },
     { .id = IN2_SETTINGS_GR, .label = IN2_SETTINGS_GR, .settings = input2_settings },
     {}
 };
 
-static bsp_t brd_esp01_dimmer = { .id = "ESP-01 Dimmer", .settings_pack = board_settings_pack };
+static bsp_t brd_esp01_dimmer = { .id = "ESP-01 Dimmer",
+                                  .ver = "1.0",
+                                  .settings_pack = board_settings };
 
 bsp_t *const bsp = &brd_esp01_dimmer;
 

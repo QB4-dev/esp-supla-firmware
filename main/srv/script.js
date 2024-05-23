@@ -8,8 +8,10 @@ function tab(e, id) {
 }
 
 function reset(e) {
-	fetch(esp_url+"/settings?action=restart");
-	alert("Board reset - disconnected")
+    if (confirm("Do you want to reset the board?") == true) {
+	    fetch(esp_url+"/settings?action=restart");
+	    alert("Board reset - disconnected");
+    }
 }
 
 function suplaStats(){

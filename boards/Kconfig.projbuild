@@ -1,5 +1,5 @@
 menu "Board Select"
-	choice BOARD
+	choice
 	prompt "Target board"
             default BSP_ESP01_DIMMER_v1_0
             help
@@ -16,6 +16,9 @@ menu "Board Select"
 
 	config BSP_ESP01_USB
 	    bool "ESP-01 USB"
+	    
+	config BSP_ESP12F_RELAY_X4_v1_2
+		bool "ESP12F_RELAY_X4_v1_2"
 
 	endchoice
 endmenu
