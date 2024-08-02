@@ -1,0 +1,27 @@
+menu "Board Select"
+	choice
+	prompt "Target board"
+            default BSP_ESP01_DIMMER_v1_0
+            help
+                Select target board
+    
+    config BSP_NODE_MCU
+    	bool "NODE_MCU"
+                
+	config BSP_ESP01_DIMMER_v1_0
+	    bool "ESP-01 DIMMER v1.0"
+	    
+	config BSP_ESP01_DIMMER_v1_1
+	    bool "ESP-01 DIMMER v1.1"
+	    
+	config BSP_ESP01_RGBW
+	    bool "ESP-01 RGBW"
+
+	config BSP_ESP01_USB
+	    bool "ESP-01 USB"
+	    
+	config BSP_ESP12F_RELAY_X4_v1_2
+		bool "ESP12F_RELAY_X4_v1_2"
+
+	endchoice
+endmenu
