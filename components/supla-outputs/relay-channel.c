@@ -39,8 +39,12 @@ static int supla_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
 
     switch (active_func) {
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
-        TChannelConfig_StaircaseTimer *timer_conf = (TChannelConfig_StaircaseTimer *)config->Config;
-        supla_log(LOG_INFO, "staircase config: %dms", timer_conf->TimeMS);
+        if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT) {
+            TChannelConfig_StaircaseTimer *timer_conf =
+                (TChannelConfig_StaircaseTimer *)config->Config;
+            supla_log(LOG_INFO, "staircase config: %dms", timer_conf->TimeMS);
+            //TODO store this
+        }
     } break;
     default:
         break;

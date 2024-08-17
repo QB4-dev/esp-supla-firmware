@@ -122,21 +122,21 @@ esp_err_t board_init(supla_dev_t *dev)
                                                      .fade_time = 1000 };
     ledc_channel = supla_ledc_channel_create(&ledc_channel_conf);
 
-    struct click_input_config in1_conf = { .gpio = GPIO_NUM_0,
-                                           .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
-                                                                  SUPLA_ACTION_CAP_TURN_OFF,
-                                           .related_channel = &ledc_channel,
-                                           .on_detect_cb = detect_cb,
-                                           .arg = ledc_channel };
-    struct click_input_config in2_conf = { .gpio = GPIO_NUM_2,
-                                           .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
-                                                                  SUPLA_ACTION_CAP_TURN_OFF,
-                                           .related_channel = &ledc_channel,
-                                           .on_detect_cb = detect_cb,
-                                           .arg = ledc_channel };
+    struct generic_input_config in1_conf = { .gpio = GPIO_NUM_0,
+                                             .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
+                                                                    SUPLA_ACTION_CAP_TURN_OFF,
+                                             .related_channel = &ledc_channel,
+                                             .on_detect_cb = detect_cb,
+                                             .arg = ledc_channel };
+    struct generic_input_config in2_conf = { .gpio = GPIO_NUM_2,
+                                             .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
+                                                                    SUPLA_ACTION_CAP_TURN_OFF,
+                                             .related_channel = &ledc_channel,
+                                             .on_detect_cb = detect_cb,
+                                             .arg = ledc_channel };
 
-    input1_channel = supla_click_input_create(&in1_conf);
-    input2_channel = supla_click_input_create(&in2_conf);
+    input1_channel = supla_generic_input_create(&in1_conf);
+    input2_channel = supla_generic_input_create(&in2_conf);
 
     supla_dev_set_name(dev, bsp->id);
     supla_dev_add_channel(dev, ledc_channel);

@@ -1,12 +1,3 @@
-/* Simple WAV playback example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 #include <esp_system.h>
 #include <esp_log.h>
 #include <esp_event.h>
@@ -31,20 +22,19 @@ static supla_dev_t        *supla_dev;
 static struct supla_config supla_config;
 static char                hostname[32];
 
-static void net_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
-                              void *event_data)
+static void net_event_handler(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
-    if (event_base == WIFI_EVENT) {
-        switch (event_id) {
+    if (base == WIFI_EVENT) {
+        switch (id) {
         case WIFI_EVENT_STA_START:
             break;
         case WIFI_EVENT_STA_CONNECTED: {
-            wifi_event_sta_connected_t *info = event_data;
+            wifi_event_sta_connected_t *info = data;
 
             ESP_LOGI(TAG, "Connected to SSID: %s", info->ssid);
         } break;
         case WIFI_EVENT_STA_DISCONNECTED: {
-            wifi_event_sta_disconnected_t *info = event_data;
+            wifi_event_sta_disconnected_t *info = data;
 
             ESP_LOGE(TAG, "Station disconnected(reason : %d)", info->reason);
             //          if (info->reason == WIFI_REASON_BASIC_RATE_NOT_SUPPORT) {
@@ -54,15 +44,17 @@ static void net_event_handler(void *arg, esp_event_base_t event_base, int32_t ev
             if (info->reason == WIFI_REASON_ASSOC_LEAVE)
                 break; // disconnected by user
 
+            /* Let the chip cool down for a while */
+            vTaskDelay(pdMS_TO_TICKS(5000));
             esp_wifi_connect();
         } break;
         default:
             break;
         }
-    } else if (event_base == IP_EVENT) {
-        switch (event_id) {
+    } else if (base == IP_EVENT) {
+        switch (id) {
         case IP_EVENT_STA_GOT_IP: {
-            ip_event_got_ip_t *event = event_data;
+            ip_event_got_ip_t *event = data;
             ESP_LOGI(TAG, "got ip:%s", ip4addr_ntoa(&event->ip_info.ip));
             supla_dev_start(supla_dev);
         } break;

@@ -79,6 +79,7 @@ static supla_channel_t *ledc_channel;
 
 esp_err_t board_early_init(void)
 {
+    esp_set_cpu_freq(ESP_CPU_FREQ_80M);
     return ESP_OK;
 }
 

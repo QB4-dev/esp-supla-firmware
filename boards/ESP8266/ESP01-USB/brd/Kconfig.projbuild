@@ -1,0 +1,12 @@
+menu "Board Select"
+	choice
+	prompt "Target board"
+            default BSP_ESP01_USB
+            help
+                Select target board
+                
+	config BSP_ESP01_USB
+	    bool "BSP_ESP01_USB"
+
+	endchoice
+endmenu
