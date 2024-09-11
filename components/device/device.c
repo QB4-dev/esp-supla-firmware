@@ -76,12 +76,11 @@ esp_err_t device_init_config(void)
     EventBits_t bits = xEventGroupGetBits(dev_event_group);
 
     if (bits & DEVICE_CONFIG_EVENT_BIT)
-        return ESP_OK;
+        return ESP_OK; //already in config mode
 
     ESP_LOGW(TAG, "config init");
     xEventGroupSetBits(dev_event_group, DEVICE_CONFIG_EVENT_BIT);
-    esp_event_post_to(event_loop_hdl, DEV_EVENT, DEVICE_EVENT_CONFIG_INIT, NULL, 0,
-                      100 / portTICK_PERIOD_MS);
+    esp_event_post_to(event_loop_hdl, DEV_EVENT, DEVICE_EVENT_CONFIG_INIT, NULL, 0, 100);
     return ESP_OK;
 }
 
@@ -94,7 +93,6 @@ esp_err_t device_exit_config(void)
 
     ESP_LOGW(TAG, "config exit");
     xEventGroupClearBits(dev_event_group, DEVICE_CONFIG_EVENT_BIT);
-    esp_event_post_to(event_loop_hdl, DEV_EVENT, DEVICE_EVENT_CONFIG_EXIT, NULL, 0,
-                      100 / portTICK_PERIOD_MS);
+    esp_event_post_to(event_loop_hdl, DEV_EVENT, DEVICE_EVENT_CONFIG_EXIT, NULL, 0, 100);
     return ESP_OK;
 }
