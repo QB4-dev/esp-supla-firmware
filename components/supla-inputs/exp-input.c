@@ -8,7 +8,7 @@
 #include <esp_timer.h>
 #include <esp_log.h>
 
-#define POLL_INTERVAL_US 100000 //100ms
+#define DEFAULT_POLL_INTERVAL_US 100000 //100ms
 
 struct exp_input_data {
     i2c_dev_t             *i2c_exp;
@@ -117,6 +117,6 @@ supla_channel_t *supla_exp_input_create(const struct exp_input_config *input_con
 
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
-    esp_timer_start_periodic(data->timer, POLL_INTERVAL_US);
+    esp_timer_start_periodic(data->timer, DEFAULT_POLL_INTERVAL_US);
     return ch;
 }

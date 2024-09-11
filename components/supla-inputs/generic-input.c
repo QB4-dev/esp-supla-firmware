@@ -4,7 +4,7 @@
 #include <esp_timer.h>
 #include <esp_log.h>
 
-#define POLL_INTERVAL_US 10000   //10ms
+#define DEFAULT_POLL_INTERVAL_US 10000   //10ms
 #define DEAD_TIME_US 50000       //50ms
 #define BUF_RESET_TIME_US 500000 //500ms
 #define CLICK_EVENTS_MAX 5
@@ -43,7 +43,7 @@ static void input_poll(void *arg)
 
     if (data->level == 0 && data->init_time < DEAD_TIME_US) {
         // Dead time, ignore all
-        data->init_time += POLL_INTERVAL_US;
+        data->init_time += DEFAULT_POLL_INTERVAL_US;
         return;
     }
 
@@ -55,14 +55,14 @@ static void input_poll(void *arg)
             data->on_detect_cb(INPUT_EVENT_INIT, data->cb_arg);
             //supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_ON);
         }
-        data->init_time += POLL_INTERVAL_US;
+        data->init_time += DEFAULT_POLL_INTERVAL_US;
         data->idle_time = 0;
     } else {
         if (data->init_time > 0) {
             data->buf[data->ev_num % CLICK_EVENTS_MAX] = data->init_time / 1000;
             data->ev_num++;
         }
-        data->idle_time += POLL_INTERVAL_US;
+        data->idle_time += DEFAULT_POLL_INTERVAL_US;
         data->init_time = 0;
     }
     if (data->idle_time > BUF_RESET_TIME_US && data->buf[0] != 0) {
@@ -127,6 +127,6 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     gpio_config(&gpio_conf);
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
-    esp_timer_start_periodic(data->timer, POLL_INTERVAL_US);
+    esp_timer_start_periodic(data->timer, DEFAULT_POLL_INTERVAL_US);
     return ch;
 }
