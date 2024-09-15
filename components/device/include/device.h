@@ -28,8 +28,10 @@ ESP_EVENT_DECLARE_BASE(DEV_EVENT);
  *
  */
 typedef enum {
-    DEVICE_EVENT_CONFIG_INIT, /*!< config mode init event*/
-    DEVICE_EVENT_CONFIG_EXIT, /*!< config mode exit event*/
+    DEVICE_EVENT_CONFIG_INIT,  /*!< config mode init event*/
+    DEVICE_EVENT_CONFIG_EXIT,  /*!< config mode exit event*/
+    DEVICE_EVENT_SLEEP_INIT,   /*!< config mode init event*/
+    DEVICE_EVENT_SLEEP_RESUME, /*!< config mode exit event*/
 } device_event_id_t;
 
 esp_err_t   device_init(esp_event_handler_t ev_hdl, void *args);

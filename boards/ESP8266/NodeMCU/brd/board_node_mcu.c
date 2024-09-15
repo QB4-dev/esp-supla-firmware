@@ -25,8 +25,6 @@ static bsp_t brd_nodemcu = { .id = "NodeMCU", .ver = "1.0", .settings_pack = boa
 
 bsp_t *const bsp = &brd_nodemcu;
 
-static supla_channel_t *input1_channel;
-// static supla_channel_t *input2_channel;
 static supla_channel_t *relay_channel;
 static supla_dev_t     *supla_dev;
 
@@ -54,34 +52,22 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 
 esp_err_t board_early_init(void)
 {
+    esp_set_cpu_freq(ESP_CPU_FREQ_160M);
     return ESP_OK;
 }
 
 esp_err_t board_init(supla_dev_t *dev)
 {
-    struct binary_sensor_config binary_sensor1_conf = {
-        .gpio = GPIO_NUM_16,
-        .default_function = SUPLA_CHANNELFNC_OPENINGSENSOR_GARAGEDOOR,
-        .supported_functions = 0xff
-    };
-
     struct relay_channel_config relay_channel_conf = {
-        .gpio = GPIO_NUM_2,
-        .default_function = SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR,
-        .supported_functions = 0xff
+        .gpio = GPIO_NUM_2, .default_function = 0x00, .supported_functions = 0xff
         //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
     };
 
     button_init(&btn);
-
-    input1_channel = supla_binary_sensor_create(&binary_sensor1_conf);
-    // input2_channel = supla_binary_sensor_create(&binary_sensor2_conf);
     relay_channel = supla_relay_channel_create(&relay_channel_conf);
+    supla_channel_set_default_caption(relay_channel, "RELAY");
 
-    supla_dev_add_channel(dev, input1_channel);
-    //supla_dev_add_channel(dev, input2_channel);
     supla_dev_add_channel(dev, relay_channel);
-
     supla_dev_enable_notifications(dev, 0x00);
 
     supla_dev = dev; //store pointer

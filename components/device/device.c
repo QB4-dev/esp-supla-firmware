@@ -49,7 +49,7 @@ esp_err_t device_init(esp_event_handler_t ev_hdl, void *args)
         goto eh_failed;
     }
 
-    BaseType_t err = xTaskCreate(device_task_entry, "dev", 4096, NULL, tskIDLE_PRIORITY, &tsk_hdl);
+    BaseType_t err = xTaskCreate(device_task_entry, "dev", 2048, NULL, tskIDLE_PRIORITY, &tsk_hdl);
     if (err != pdTRUE) {
         ESP_LOGE(TAG, "task create failed");
         goto task_failed;
