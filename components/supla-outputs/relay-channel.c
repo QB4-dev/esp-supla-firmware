@@ -10,13 +10,11 @@ struct relay_channel_data {
     uint32_t           seconds_left;
 };
 
-static int supla_relay_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
+int supla_relay_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
-    int                        active_func;
     struct relay_channel_data *data = supla_channel_get_data(ch);
     TTimerState_ExtendedValue  timer_state = {};
 
-    supla_channel_get_active_function(ch, &active_func);
     esp_timer_stop(data->timer);
     data->seconds_left = new_value->DurationMS / 1000;
     if (data->seconds_left) {
@@ -25,39 +23,15 @@ static int supla_relay_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_va
         supla_channel_set_timer_state_extvalue(ch, &timer_state);
     }
 
-    switch (active_func) {
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEGATEWAYLOCK:
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEDOORLOCK:
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEGATE:
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR:
-    case SUPLA_CHANNELFNC_POWERSWITCH:
-    case SUPLA_CHANNELFNC_LIGHTSWITCH:
-    case SUPLA_CHANNELFNC_STAIRCASETIMER: {
-        TRelayChannel_Value *relay_val = (TRelayChannel_Value *)new_value->value;
-        gpio_set_level(data->gpio, relay_val->hi);
-        if (data->seconds_left) {
-            supla_log(LOG_INFO, "relay set %s for %ds", relay_val->hi ? "ON" : "OFF",
-                      data->seconds_left);
-        } else {
-            supla_log(LOG_INFO, "relay set %s", relay_val->hi ? "ON" : "OFF");
-        }
-        return supla_channel_set_relay_value(ch, relay_val);
-    } break;
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER: {
-        TCSD_RollerShutterValue *rs_srv = (TCSD_RollerShutterValue *)new_value->value;
-        TDSC_RollerShutterValue  rs_ret = {};
-
-        uint16_t open = (uint16_t)(new_value->DurationMS >> 0) & 0xFFFF;
-        uint16_t close = (uint16_t)(new_value->DurationMS >> 16) & 0xFFFF;
-
-        supla_log(LOG_INFO, "rs set pos=%d with open=%d close=%d", rs_srv->position, open, close);
-
-        return supla_channel_set_roller_shutter_value(ch, &rs_ret);
-    } break;
-    default:
-        break;
+    TRelayChannel_Value *relay_val = (TRelayChannel_Value *)new_value->value;
+    gpio_set_level(data->gpio, relay_val->hi);
+    if (data->seconds_left) {
+        supla_log(LOG_INFO, "relay set %s for %ds", relay_val->hi ? "ON" : "OFF",
+                  data->seconds_left);
+    } else {
+        supla_log(LOG_INFO, "relay set %s", relay_val->hi ? "ON" : "OFF");
     }
-    return SUPLA_RESULT_FALSE;
+    return supla_channel_set_relay_value(ch, relay_val);
 }
 
 static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
@@ -76,13 +50,6 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGATE:
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR: {
         if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
-        }
-    } break;
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER: {
-        if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
-            TChannelConfig_RollerShutter *rs_conf = (TChannelConfig_RollerShutter *)config->Config;
-            supla_log(LOG_INFO, "roller shutter config: opening %dms closing %dms",
-                      rs_conf->OpeningTimeMS, rs_conf->ClosingTimeMS);
         }
     } break;
     case SUPLA_CHANNELFNC_POWERSWITCH:
@@ -147,6 +114,27 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     };
     struct relay_channel_data *data;
 
+    if ((config->supported_functions | RELAY_CH_SUPPORTED_FUNC_MASK) !=
+        RELAY_CH_SUPPORTED_FUNC_MASK) {
+        supla_log(LOG_ERR, "channel supported_functions conflict %x != %x",
+                  config->supported_functions, RELAY_CH_SUPPORTED_FUNC_MASK);
+        return NULL;
+    }
+
+    switch (config->default_function) {
+    case SUPLA_CHANNELFNC_CONTROLLINGTHEGATEWAYLOCK:
+    case SUPLA_CHANNELFNC_CONTROLLINGTHEDOORLOCK:
+    case SUPLA_CHANNELFNC_CONTROLLINGTHEGATE:
+    case SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR:
+    case SUPLA_CHANNELFNC_POWERSWITCH:
+    case SUPLA_CHANNELFNC_LIGHTSWITCH:
+    case SUPLA_CHANNELFNC_STAIRCASETIMER:
+        break;
+    default:
+        supla_log(LOG_ERR, "channel default_function %d not supported", config->default_function);
+        return NULL;
+    }
+
     supla_channel_t *ch = supla_channel_create(&supla_channel_config);
     if (!ch)
         return NULL;
@@ -166,4 +154,12 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
     return ch;
+}
+
+int supla_relay_channel_delete(supla_channel_t *ch)
+{
+    struct relay_channel_data *data = supla_channel_get_data(ch);
+    esp_timer_delete(data->timer);
+    free(data);
+    return supla_channel_free(ch);
 }

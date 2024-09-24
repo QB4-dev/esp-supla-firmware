@@ -113,7 +113,7 @@ esp_err_t board_early_init(void)
     return ESP_OK;
 }
 
-esp_err_t board_init(supla_dev_t *dev)
+esp_err_t board_supla_init(supla_dev_t *dev)
 {
     settings_nvs_read(bsp->settings_pack);
 

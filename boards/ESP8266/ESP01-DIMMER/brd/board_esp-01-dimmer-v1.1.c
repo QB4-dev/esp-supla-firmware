@@ -206,7 +206,7 @@ static void pulse_task(void *arg)
     }
 }
 
-esp_err_t board_init(supla_dev_t *dev)
+esp_err_t board_supla_init(supla_dev_t *dev)
 {
     setting_t *active_lvl_set = NULL;
 

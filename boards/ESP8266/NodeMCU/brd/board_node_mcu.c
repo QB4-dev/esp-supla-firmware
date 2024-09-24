@@ -56,11 +56,13 @@ esp_err_t board_early_init(void)
     return ESP_OK;
 }
 
-esp_err_t board_init(supla_dev_t *dev)
+esp_err_t board_supla_init(supla_dev_t *dev)
 {
     struct relay_channel_config relay_channel_conf = {
-        .gpio = GPIO_NUM_2, .default_function = 0x00, .supported_functions = 0xff
-        //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
+        .gpio = GPIO_NUM_2,
+        .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
+        .supported_functions = SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH |
+                               SUPLA_BIT_FUNC_STAIRCASETIMER //
     };
 
     button_init(&btn);

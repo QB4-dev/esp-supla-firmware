@@ -45,23 +45,9 @@ static httpd_handle_t server = NULL;
                                                   .handler = get_##NAME }
 #endif
 
-#define DECLARE_EMBED_HANDLER_RAW(NAME, URI, CT)                           \
-    extern const char embed_##NAME[] asm("_binary_" #NAME "_start");       \
-    extern const char size_##NAME[] asm("_binary_" #NAME "_size");         \
-    esp_err_t         get_##NAME(httpd_req_t *req)                         \
-    {                                                                      \
-        httpd_resp_set_type(req, CT);                                      \
-        return httpd_resp_send(req, embed_##NAME, (size_t) & size_##NAME); \
-    }                                                                      \
-    static const httpd_uri_t route_get_##NAME = { .uri = (URI),            \
-                                                  .method = HTTP_GET,      \
-                                                  .handler = get_##NAME }
-
 DECLARE_EMBED_HANDLER(index_html_gz, "/index.html", "text/html");
 DECLARE_EMBED_HANDLER(supla_css_gz, "/supla.css", "text/css");
 DECLARE_EMBED_HANDLER(script_js_gz, "/script.js", "text/javascript");
-
-//DECLARE_EMBED_HANDLER_RAW(config_html, "/", "text/html");
 
 static const httpd_uri_t route_get_root = {
     .uri = "/",
@@ -161,7 +147,7 @@ static esp_err_t init(supla_dev_t **dev, const settings_group_t *settings_pack)
     return ESP_OK;
 }
 
-esp_err_t webserver_start(supla_dev_t **dev, const settings_group_t *settings_pack)
+esp_err_t webserver_start(supla_dev_t **dev, const bsp_t *brd)
 {
     if (server) {
         ESP_LOGI(TAG, "server started, trying to stop...");
@@ -174,7 +160,7 @@ esp_err_t webserver_start(supla_dev_t **dev, const settings_group_t *settings_pa
     config.stack_size = 4 * 4096;
 
     ESP_ERROR_CHECK(httpd_start(&server, &config));
-    ESP_ERROR_CHECK(init(dev, settings_pack));
+    ESP_ERROR_CHECK(init(dev, brd->settings_pack));
 
     ESP_LOGI(TAG, "server started on port %d, free mem: %" PRIu32 " bytes", config.server_port,
              esp_get_free_heap_size());
