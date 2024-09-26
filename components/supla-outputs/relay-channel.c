@@ -3,9 +3,7 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include <esp_timer.h>
-#include <nvs_flash.h>
-
-static const char *NVS_STORAGE = "relay_ch";
+#include <esp-supla.h>
 
 struct relay_nvs_config {
     int active_func;
@@ -19,41 +17,25 @@ struct relay_channel_data {
     gpio_num_t              gpio;
     esp_timer_handle_t      timer;
     uint32_t                seconds_left;
-    char                    nvs_key[8];
     struct relay_nvs_config nvs_config;
 };
 
 static int supla_relay_channel_init(supla_channel_t *ch)
 {
-    nvs_handle                 nvs;
-    size_t                     required_size;
-    esp_err_t                  rc;
-    int                        ch_num = supla_channel_get_assigned_number(ch);
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
-    snprintf(data->nvs_key, sizeof(data->nvs_key), "ch%02d", ch_num);
-    rc = nvs_open(NVS_STORAGE, NVS_READONLY, &nvs);
-    if (rc == ESP_OK) {
-        nvs_get_blob(nvs, data->nvs_key, &data->nvs_config, &required_size);
-        nvs_close(nvs);
-    } else {
-        supla_log(LOG_ERR, "nvs open error %s", esp_err_to_name(rc));
-    }
+    supla_esp_nvs_restore_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
 
-    supla_log(LOG_INFO, "relay channel restore ch:%d func=%d", ch_num,
+    supla_log(LOG_INFO, "relay_ch:%d func=%d", supla_channel_get_assigned_number(ch),
               data->nvs_config.active_func);
     return SUPLA_RESULTCODE_TRUE;
 }
 
 static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
 {
-    nvs_handle                 nvs;
-    esp_err_t                  rc;
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
-    supla_log(LOG_INFO, "got relay config fn=%d size=%d", config->Func, config->ConfigSize);
-
-    data->nvs_config.active_func = config->Func;
+    supla_log(LOG_INFO, "got relay_ch config fn=%d size=%d", config->Func, config->ConfigSize);
 
     switch (config->Func) {
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGATEWAYLOCK:
@@ -72,7 +54,10 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
             TChannelConfig_PowerSwitch *switch_conf = (TChannelConfig_PowerSwitch *)config->Config;
             supla_log(LOG_INFO, "power switch config: oc-max %d oc-tresh %d",
                       switch_conf->OvercurrentMaxAllowed, switch_conf->OvercurrentThreshold);
-            //TODO store this
+
+            data->nvs_config.active_func = config->Func;
+            data->nvs_config.power_switch = *switch_conf;
+            supla_esp_nvs_store_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
@@ -81,15 +66,9 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
                 (TChannelConfig_StaircaseTimer *)config->Config;
             supla_log(LOG_INFO, "staircase config: %dms", staircase_conf->TimeMS);
 
+            data->nvs_config.active_func = config->Func;
             data->nvs_config.staircase_timer = *staircase_conf;
-            rc = nvs_open(NVS_STORAGE, NVS_READWRITE, &nvs);
-            if (rc == ESP_OK) {
-                nvs_set_blob(nvs, data->nvs_key, &data->nvs_config, sizeof(data->nvs_config));
-                nvs_commit(nvs);
-                nvs_close(nvs);
-            } else {
-                supla_log(LOG_ERR, "nvs open error %s", esp_err_to_name(rc));
-            }
+            supla_esp_nvs_store_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     default:
@@ -100,18 +79,18 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
 
 static int supla_relay_channel_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
-    struct relay_channel_data *data = supla_channel_get_data(ch);
+    TRelayChannel_Value       *relay_val = (TRelayChannel_Value *)new_value->value;
     TTimerState_ExtendedValue  timer_state = {};
+    struct relay_channel_data *data = supla_channel_get_data(ch);
 
     esp_timer_stop(data->timer);
-    data->seconds_left = new_value->DurationMS / 1000;
+    data->seconds_left = relay_val->hi ? (new_value->DurationMS / 1000) : 0;
     if (data->seconds_left) {
         esp_timer_start_periodic(data->timer, 1000 * 1000);
     } else {
         supla_channel_set_timer_state_extvalue(ch, &timer_state);
     }
 
-    TRelayChannel_Value *relay_val = (TRelayChannel_Value *)new_value->value;
     gpio_set_level(data->gpio, relay_val->hi);
     if (data->seconds_left) {
         supla_log(LOG_INFO, "relay set %s for %ds", relay_val->hi ? "ON" : "OFF",
@@ -188,7 +167,7 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     if (!ch)
         return NULL;
 
-    data = malloc(sizeof(struct relay_channel_data));
+    data = calloc(1, sizeof(struct relay_channel_data));
     if (!data) {
         supla_channel_free(ch);
         return NULL;
@@ -216,7 +195,6 @@ int supla_relay_channel_delete(supla_channel_t *ch)
 int supla_relay_channel_get_state(supla_channel_t *ch)
 {
     struct relay_channel_data *data = supla_channel_get_data(ch);
-
     return gpio_get_level(data->gpio);
 }
 

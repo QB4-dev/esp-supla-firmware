@@ -11,5 +11,8 @@ struct binary_sensor_config {
 };
 
 supla_channel_t *supla_binary_sensor_create(const struct binary_sensor_config *config);
+int              supla_binary_sensor_delete(supla_channel_t *ch);
+
+int supla_binary_sensor_get_local(supla_channel_t *ch);
 
 #endif /* _SUPLA_CLICK_INPUT_H_ */
