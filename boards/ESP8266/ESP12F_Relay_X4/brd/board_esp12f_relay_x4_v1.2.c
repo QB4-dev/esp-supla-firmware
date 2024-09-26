@@ -69,25 +69,25 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     struct relay_channel_config relay1_channel_conf = {
         .gpio = GPIO_NUM_16,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = 0xff,
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
 
     struct relay_channel_config relay2_channel_conf = {
         .gpio = GPIO_NUM_14,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = 0xff,
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
 
     struct relay_channel_config relay3_channel_conf = {
         .gpio = GPIO_NUM_12,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = 0xff,
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
 
     struct relay_channel_config relay4_channel_conf = {
         .gpio = GPIO_NUM_13,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = 0xff,
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
 
     relay1_channel = supla_relay_channel_create(&relay1_channel_conf);
