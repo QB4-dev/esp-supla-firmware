@@ -108,7 +108,7 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
     }
 }
 
-static esp_err_t supla_init(void)
+static esp_err_t supla_device_init(void)
 {
     supla_esp_nvs_config_init(&supla_config);
     supla_dev = supla_dev_create(bsp->id, NULL);
@@ -122,35 +122,23 @@ static esp_err_t supla_init(void)
     return ESP_OK;
 }
 
-static void supla_task(void *arg)
-{
-    supla_dev_t *dev = arg;
-
-    if (supla_dev_set_config(dev, &supla_config) != SUPLA_RESULT_TRUE) {
-        vTaskDelete(NULL);
-        return;
-    }
-
-    while (1) {
-        supla_dev_iterate(dev);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
-
 void app_main()
 {
     ESP_ERROR_CHECK(board_early_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ESP_ERROR_CHECK(device_init(dev_event_handler, NULL));
-    ESP_ERROR_CHECK(supla_init());
+    ESP_ERROR_CHECK(supla_device_init());
     ESP_ERROR_CHECK(board_supla_init(supla_dev));
     ESP_ERROR_CHECK(wifi_init(net_event_handler));
-
-    xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
 
     if (supla_config.email[0] == 0)
         device_init_config();
     else
         wifi_set_station_mode();
+
+    while (1) {
+        supla_dev_iterate(supla_dev);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 }

@@ -15,13 +15,13 @@
 #include <esp_log.h>
 #include <esp_err.h>
 
-#define DEVICE_CONFIG_EVENT_BIT BIT0
-
 /**
  * @brief Declare device event base
  *
  */
 ESP_EVENT_DECLARE_BASE(DEV_EVENT);
+
+#define DEVICE_CONFIG_EVENT_BIT BIT0
 
 /**
  * @brief Device Event Event ID

@@ -30,11 +30,13 @@ static supla_dev_t     *supla_dev;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
-    EventBits_t bits = device_get_event_bits();
+    TRelayChannel_Value relay_value = {};
+    EventBits_t         bits = device_get_event_bits();
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
-        supla_dev_send_notification(supla_dev, -1, "NodeMCU", "PUSH notification", 0);
+        relay_value.hi = !supla_relay_channel_get_state(relay_channel);
+        supla_relay_channel_set_local(relay_channel, &relay_value);
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");
