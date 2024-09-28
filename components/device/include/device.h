@@ -15,13 +15,13 @@
 #include <esp_log.h>
 #include <esp_err.h>
 
-#define DEVICE_CONFIG_EVENT_BIT BIT0
-
 /**
  * @brief Declare device event base
  *
  */
 ESP_EVENT_DECLARE_BASE(DEV_EVENT);
+
+#define DEVICE_CONFIG_EVENT_BIT BIT0
 
 /**
  * @brief Device Event Event ID
@@ -30,8 +30,8 @@ ESP_EVENT_DECLARE_BASE(DEV_EVENT);
 typedef enum {
     DEVICE_EVENT_CONFIG_INIT,  /*!< config mode init event*/
     DEVICE_EVENT_CONFIG_EXIT,  /*!< config mode exit event*/
-    DEVICE_EVENT_SLEEP_INIT,   /*!< config mode init event*/
-    DEVICE_EVENT_SLEEP_RESUME, /*!< config mode exit event*/
+    DEVICE_EVENT_SLEEP_INIT,   /*!< sleep mode init event*/
+    DEVICE_EVENT_SLEEP_RESUME, /*!< sleep mode exit event*/
 } device_event_id_t;
 
 esp_err_t   device_init(esp_event_handler_t ev_hdl, void *args);

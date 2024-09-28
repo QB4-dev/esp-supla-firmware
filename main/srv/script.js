@@ -112,7 +112,8 @@ function getSuplaConfigForm(){
 			<input type="text" name="email" value="${js.data.email}" style="max-width:300px"><br>
 			Server<br>
 			<input type="text" name="server" value="${js.data.server}" style="max-width:300px"><br>
-			<input type="submit" value="submit">
+			<input type="checkbox" name="ssl" ${js.data.ssl?"checked":""}>SSL<br>
+      <input type="submit" value="submit">
 		</form>`;
 
 		div.innerHTML = html;

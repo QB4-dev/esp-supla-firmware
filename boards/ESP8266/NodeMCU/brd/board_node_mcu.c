@@ -30,11 +30,13 @@ static supla_dev_t     *supla_dev;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
-    EventBits_t bits = device_get_event_bits();
+    TRelayChannel_Value relay_value = {};
+    EventBits_t         bits = device_get_event_bits();
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
-        supla_dev_send_notification(supla_dev, -1, "NodeMCU", "PUSH notification", 0);
+        relay_value.hi = !supla_relay_channel_get_state(relay_channel);
+        supla_relay_channel_set_local(relay_channel, &relay_value);
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");
@@ -56,11 +58,12 @@ esp_err_t board_early_init(void)
     return ESP_OK;
 }
 
-esp_err_t board_init(supla_dev_t *dev)
+esp_err_t board_supla_init(supla_dev_t *dev)
 {
     struct relay_channel_config relay_channel_conf = {
-        .gpio = GPIO_NUM_2, .default_function = 0x00, .supported_functions = 0xff
-        //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
+        .gpio = GPIO_NUM_2,
+        .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS
     };
 
     button_init(&btn);
@@ -68,7 +71,7 @@ esp_err_t board_init(supla_dev_t *dev)
     supla_channel_set_default_caption(relay_channel, "RELAY");
 
     supla_dev_add_channel(dev, relay_channel);
-    supla_dev_enable_notifications(dev, 0x00);
+    //supla_dev_enable_notifications(dev, 0x00);
 
     supla_dev = dev; //store pointer
     ESP_LOGI(TAG, "board init completed OK");

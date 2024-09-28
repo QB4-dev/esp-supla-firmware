@@ -4,10 +4,8 @@
 #include <esp_wifi.h>
 #include <esp_netif.h>
 #include <nvs_flash.h>
-//#include <esp_event_loop.h>
 #include <esp_event.h>
 #include <esp_netif.h>
-//#include <tcpip_adapter.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -58,7 +56,6 @@ static void net_event_handler(void *arg, esp_event_base_t base, int32_t id, void
         case IP_EVENT_STA_GOT_IP: {
             ip_event_got_ip_t *event = data;
             ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
-            //ESP_LOGI(TAG, "got ip:%s", ip4addr_ntoa(&event->ip_info.ip));
             supla_dev_start(supla_dev);
         } break;
         default:
@@ -75,12 +72,12 @@ static void dev_event_handler(void *event_handler_arg, esp_event_base_t event_ba
         board_on_config_mode_init();
         wifi_set_access_point_mode(hostname);
         supla_dev_enter_config_mode(supla_dev);
-        webserver_start(&supla_dev, bsp->settings_pack);
+        webserver_start(&supla_dev, bsp);
         break;
     case DEVICE_EVENT_CONFIG_EXIT: {
         board_on_config_mode_exit();
-        webserver_stop();
         supla_dev_exit_config_mode(supla_dev);
+        webserver_stop();
         wifi_set_station_mode();
     } break;
     default:
@@ -111,7 +108,7 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
     }
 }
 
-static esp_err_t supla_init(void)
+static esp_err_t supla_device_init(void)
 {
     supla_esp_nvs_config_init(&supla_config);
     supla_dev = supla_dev_create(bsp->id, NULL);
@@ -120,24 +117,10 @@ static esp_err_t supla_init(void)
     supla_dev_set_common_channel_state_callback(supla_dev, supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev, supla_esp_server_time_sync);
     supla_dev_set_server_req_restart_callback(supla_dev, supla_esp_restart_callback);
+    supla_config.ssl = 1;
     supla_dev_set_config(supla_dev, &supla_config);
     supla_esp_generate_hostname(supla_dev, hostname, sizeof(hostname));
     return ESP_OK;
-}
-
-static void supla_task(void *arg)
-{
-    supla_dev_t *dev = arg;
-
-    if (supla_dev_set_config(dev, &supla_config) != SUPLA_RESULT_TRUE) {
-        vTaskDelete(NULL);
-        return;
-    }
-
-    while (1) {
-        supla_dev_iterate(dev);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
 }
 
 void app_main()
@@ -146,14 +129,17 @@ void app_main()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ESP_ERROR_CHECK(device_init(dev_event_handler, NULL));
-    ESP_ERROR_CHECK(supla_init());
-    ESP_ERROR_CHECK(board_init(supla_dev));
+    ESP_ERROR_CHECK(supla_device_init());
+    ESP_ERROR_CHECK(board_supla_init(supla_dev));
     ESP_ERROR_CHECK(wifi_init(net_event_handler));
-
-    xTaskCreate(&supla_task, "supla", 8192, supla_dev, 1, NULL);
 
     if (supla_config.email[0] == 0)
         device_init_config();
     else
         wifi_set_station_mode();
+
+    while (1) {
+        supla_dev_iterate(supla_dev);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
 }

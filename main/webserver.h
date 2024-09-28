@@ -10,9 +10,9 @@
 
 #include <esp_http_server.h>
 #include <esp-supla.h>
-#include <settings.h>
+#include <board.h>
 
-esp_err_t webserver_start(supla_dev_t **dev, const settings_group_t *settings_pack);
+esp_err_t webserver_start(supla_dev_t **dev, const bsp_t *brd);
 esp_err_t webserver_stop(void);
 
 #endif /* MAIN_WEBSERVER_H_ */
