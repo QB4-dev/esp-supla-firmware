@@ -63,8 +63,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     struct relay_channel_config relay_channel_conf = {
         .gpio = GPIO_NUM_2,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH |
-                               SUPLA_BIT_FUNC_STAIRCASETIMER //
+        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS
     };
 
     button_init(&btn);
@@ -72,7 +71,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     supla_channel_set_default_caption(relay_channel, "RELAY");
 
     supla_dev_add_channel(dev, relay_channel);
-    supla_dev_enable_notifications(dev, 0x00);
+    //supla_dev_enable_notifications(dev, 0x00);
 
     supla_dev = dev; //store pointer
     ESP_LOGI(TAG, "board init completed OK");

@@ -23,7 +23,7 @@ static int supla_binary_sensor_channel_init(supla_channel_t *ch)
 {
     struct sensor_data *data = supla_channel_get_data(ch);
 
-    supla_esp_nvs_restore_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
+    supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
 
     supla_log(LOG_INFO, "bin_sensor:%d func=%d", supla_channel_get_assigned_number(ch),
               data->nvs_config.active_func);
@@ -43,7 +43,7 @@ static int supla_srv_binary_sensor_config(supla_channel_t *ch, TSD_ChannelConfig
 
         data->nvs_config.active_func = config->Func;
         data->nvs_config.binary_sensor = *sensor_conf;
-        supla_esp_nvs_store_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
+        supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
 
         if (sensor_conf->FilteringTimeMs) {
             esp_timer_stop(data->timer);

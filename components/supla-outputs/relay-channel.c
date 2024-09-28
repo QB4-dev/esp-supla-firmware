@@ -16,7 +16,7 @@ struct relay_nvs_config {
 struct relay_channel_data {
     gpio_num_t              gpio;
     esp_timer_handle_t      timer;
-    uint32_t                seconds_left;
+    uint32_t                mseconds_left;
     struct relay_nvs_config nvs_config;
 };
 
@@ -24,7 +24,7 @@ static int supla_relay_channel_init(supla_channel_t *ch)
 {
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
-    supla_esp_nvs_restore_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
+    supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
 
     supla_log(LOG_INFO, "relay_ch:%d func=%d", supla_channel_get_assigned_number(ch),
               data->nvs_config.active_func);
@@ -57,7 +57,7 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
 
             data->nvs_config.active_func = config->Func;
             data->nvs_config.power_switch = *switch_conf;
-            supla_esp_nvs_store_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
+            supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
@@ -68,7 +68,7 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
 
             data->nvs_config.active_func = config->Func;
             data->nvs_config.staircase_timer = *staircase_conf;
-            supla_esp_nvs_store_channel_config(ch, &data->nvs_config, sizeof(data->nvs_config));
+            supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     default:
@@ -81,22 +81,23 @@ static int supla_relay_channel_set(supla_channel_t *ch, TSD_SuplaChannelNewValue
 {
     TRelayChannel_Value       *relay_val = (TRelayChannel_Value *)new_value->value;
     TTimerState_ExtendedValue  timer_state = {};
+    const int                  ch_num = supla_channel_get_assigned_number(ch);
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
     esp_timer_stop(data->timer);
-    data->seconds_left = relay_val->hi ? (new_value->DurationMS / 1000) : 0;
-    if (data->seconds_left) {
-        esp_timer_start_periodic(data->timer, 1000 * 1000);
+    data->mseconds_left = relay_val->hi ? (new_value->DurationMS) : 0;
+    if (data->mseconds_left) {
+        esp_timer_start_periodic(data->timer, 100 * 1000);
     } else {
         supla_channel_set_timer_state_extvalue(ch, &timer_state);
     }
 
     gpio_set_level(data->gpio, relay_val->hi);
-    if (data->seconds_left) {
-        supla_log(LOG_INFO, "relay set %s for %ds", relay_val->hi ? "ON" : "OFF",
-                  data->seconds_left);
+    if (data->mseconds_left) {
+        supla_log(LOG_INFO, "ch[%d] relay set %s for %dms", ch_num, relay_val->hi ? "ON" : "OFF",
+                  data->mseconds_left);
     } else {
-        supla_log(LOG_INFO, "relay set %s", relay_val->hi ? "ON" : "OFF");
+        supla_log(LOG_INFO, "ch[%d] relay set %s", ch_num, relay_val->hi ? "ON" : "OFF");
     }
     return supla_channel_set_relay_value(ch, relay_val);
 }
@@ -107,10 +108,10 @@ static void countdown_timer_event(void *ch)
     TTimerState_ExtendedValue  timer_state = {};
     struct relay_channel_data *data = supla_channel_get_data(ch);
 
-    data->seconds_left--;
-    timer_state.RemainingTimeMs = data->seconds_left * 1000;
+    data->mseconds_left -= 100;
+    timer_state.RemainingTimeMs = data->mseconds_left;
 
-    if (data->seconds_left > 0) {
+    if (data->mseconds_left > 0) {
         supla_channel_set_timer_state_extvalue(ch, &timer_state);
     } else {
         supla_relay_channel_set(ch, &zero_value);
