@@ -23,19 +23,18 @@ struct relay_channel_data {
 static int supla_relay_channel_init(supla_channel_t *ch)
 {
     struct relay_channel_data *data = supla_channel_get_data(ch);
+    const int                  ch_num = supla_channel_get_assigned_number(ch);
 
+    supla_log(LOG_INFO, "ch[%d] relay_ch init", ch_num);
     supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
-
-    supla_log(LOG_INFO, "relay_ch:%d func=%d", supla_channel_get_assigned_number(ch),
-              data->nvs_config.active_func);
+    supla_log(LOG_INFO, "ch[%d] relay_ch: func=%d", ch_num, data->nvs_config.active_func);
     return SUPLA_RESULTCODE_TRUE;
 }
 
 static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
 {
     struct relay_channel_data *data = supla_channel_get_data(ch);
-
-    supla_log(LOG_INFO, "got relay_ch config fn=%d size=%d", config->Func, config->ConfigSize);
+    supla_log(LOG_INFO, "ch[%d] relay_ch got config fn=%d", config->ChannelNumber, config->Func);
 
     switch (config->Func) {
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGATEWAYLOCK:

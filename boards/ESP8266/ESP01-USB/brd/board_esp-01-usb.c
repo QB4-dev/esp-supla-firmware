@@ -20,18 +20,29 @@
 
 static const char *TAG = "BSP";
 
-static const settings_group_t board_settings_pack[] = { {} };
+static const char *dht_type_labels[] = { [DHT_TYPE_DHT11] = "DHT11",
+                                         [DHT_TYPE_AM2301] = "AM2301",
+                                         [DHT_TYPE_SI7021] = "SI7021",
+                                         NULL };
 
-static bsp_t brd_esp01_usb = { .id = "ESP-01 USB",
-                               .ver = "1.0",
-                               .settings_pack = board_settings_pack };
+static setting_t sensor_settings[] = {
+    { .id = "TYPE",
+      .label = "SENSOR_TYPE",
+      .type = SETTING_TYPE_ONEOF,
+      .oneof = { DHT_TYPE_DHT11, DHT_TYPE_DHT11, dht_type_labels } },
+    {} //last element
+};
+
+static const settings_group_t board_settings[] = {
+    { .id = "DHT", .label = "TEMP/HUMID SENSOR", .settings = sensor_settings },
+    {}
+};
+
+static bsp_t brd_esp01_usb = { .id = "ESP-01 USB", .ver = "1.0", .settings_pack = board_settings };
 
 bsp_t *const bsp = &brd_esp01_usb;
 
 static supla_channel_t *dht_channel;
-static supla_channel_t *input_channel;
-static supla_channel_t *relay_channel;
-static supla_dev_t     *supla_dev;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
@@ -39,7 +50,6 @@ static void button_cb(button_t *btn, button_state_t state)
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
-        supla_dev_send_notification(supla_dev, -1, "ESP-01", "PUSH notification", 0);
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");
@@ -60,25 +70,21 @@ esp_err_t board_early_init(void)
     return ESP_OK;
 }
 
-esp_err_t board_init(supla_dev_t *dev)
+esp_err_t board_supla_init(supla_dev_t *dev)
 {
-    struct relay_channel_config relay_channel_conf = {
+    settings_nvs_read(bsp->settings_pack);
+    setting_t *dht_type_set = settings_pack_find(bsp->settings_pack, "DHT", "TYPE");
+
+    struct dht_channel_config dht_conf = {
+        .sensor_type = dht_type_set ? dht_type_set->oneof.val : DHT_TYPE_AM2301,
         .gpio = GPIO_NUM_2,
-        .default_function = SUPLA_CHANNELFNC_STAIRCASETIMER,
-        .supported_functions = 0xff
-        //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
     };
 
     button_init(&btn);
-    //dht_channel = supla_channel_dht_create(DHT_TYPE_DHT11,GPIO_NUM_2,1000);
-    relay_channel = supla_relay_channel_create(&relay_channel_conf);
+    dht_channel = supla_channel_dht_create(&dht_conf);
+    supla_dev_add_channel(dev, dht_channel);
 
-    supla_dev_add_channel(dev, relay_channel);
-
-    supla_dev_enable_notifications(dev, 0x00);
-
-    supla_dev = dev; //store pointer
-    ESP_LOGI(TAG, "board init completed OK");
+    ESP_LOGI(TAG, "board init completed with sensor: %s", dht_type_labels[dht_conf.sensor_type]);
     return ESP_OK;
 }
 
