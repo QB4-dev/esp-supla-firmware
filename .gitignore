@@ -1,3 +1,5 @@
 build
 main/srv/*.gz
+boards/*/*/sdkconfig
+boards/*/*/sdkconfig.old
 .settings

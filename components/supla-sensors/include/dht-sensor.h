@@ -11,7 +11,12 @@
 #include <libsupla/channel.h>
 #include <dht.h>
 
-supla_channel_t *supla_channel_dht_create(dht_sensor_type_t sensor_type, gpio_num_t gpio,
-                                          uint32_t pool_interval);
+struct dht_channel_config {
+    dht_sensor_type_t sensor_type;
+    gpio_num_t        gpio;
+    uint32_t          poll_interval_ms;
+};
+
+supla_channel_t *supla_channel_dht_create(const struct dht_channel_config *config);
 
 #endif /* _SUPLA_SENSORS_DHT_H_ */

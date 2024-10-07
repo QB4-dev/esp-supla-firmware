@@ -4,12 +4,12 @@
 #include <esp_timer.h>
 #include <esp-supla.h>
 
-#define DEFAULT_POLL_INTERVAL_US 1000000 //100ms
+#define DEFAULT_POLL_INTERVAL_MS 1000 //1000ms
 
 struct sensor_nvs_config {
     int active_func;
     union {
-        TChannelConfig_BinarySensor binary_sensor;
+        TChannelConfig_BinarySensor bin_sensor;
     };
 };
 
@@ -22,11 +22,11 @@ struct sensor_data {
 static int supla_binary_sensor_channel_init(supla_channel_t *ch)
 {
     struct sensor_data *data = supla_channel_get_data(ch);
+    const int           ch_num = supla_channel_get_assigned_number(ch);
 
+    supla_log(LOG_INFO, "ch[%d] bin_sensor init", ch_num);
     supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
-
-    supla_log(LOG_INFO, "bin_sensor:%d func=%d", supla_channel_get_assigned_number(ch),
-              data->nvs_config.active_func);
+    supla_log(LOG_INFO, "ch[%d] bin_sensor: func=%d", ch_num, data->nvs_config.active_func);
     return SUPLA_RESULTCODE_TRUE;
 }
 
@@ -42,7 +42,7 @@ static int supla_srv_binary_sensor_config(supla_channel_t *ch, TSD_ChannelConfig
                   sensor_conf->InvertedLogic, sensor_conf->FilteringTimeMs);
 
         data->nvs_config.active_func = config->Func;
-        data->nvs_config.binary_sensor = *sensor_conf;
+        data->nvs_config.bin_sensor = *sensor_conf;
         supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
 
         if (sensor_conf->FilteringTimeMs) {
@@ -58,7 +58,7 @@ static void input_poll(void *arg)
     supla_channel_t    *ch = arg;
     struct sensor_data *data = supla_channel_get_data(ch);
     const int           level = gpio_get_level(data->gpio);
-    const int           inv_logic = data->nvs_config.binary_sensor.InvertedLogic;
+    const int           inv_logic = data->nvs_config.bin_sensor.InvertedLogic;
 
     supla_channel_set_binary_value(ch, inv_logic ? !level : level);
 }
@@ -83,7 +83,7 @@ supla_channel_t *supla_binary_sensor_create(const struct binary_sensor_config *c
     };
 
     esp_timer_create_args_t timer_args = {
-        .name = "binary-sensor",
+        .name = "bin-sensor",
         .dispatch_method = ESP_TIMER_TASK,
         .callback = input_poll,
     };
@@ -104,7 +104,7 @@ supla_channel_t *supla_binary_sensor_create(const struct binary_sensor_config *c
     gpio_config(&gpio_conf);
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
-    esp_timer_start_periodic(data->timer, DEFAULT_POLL_INTERVAL_US);
+    esp_timer_start_periodic(data->timer, DEFAULT_POLL_INTERVAL_MS * 1000);
     return ch;
 }
 
@@ -120,7 +120,7 @@ int supla_binary_sensor_get_local(supla_channel_t *ch)
 {
     struct sensor_data *data = supla_channel_get_data(ch);
     const int           level = gpio_get_level(data->gpio);
-    const int           inv_logic = data->nvs_config.binary_sensor.InvertedLogic;
+    const int           inv_logic = data->nvs_config.bin_sensor.InvertedLogic;
 
     return inv_logic ? !level : level;
 }

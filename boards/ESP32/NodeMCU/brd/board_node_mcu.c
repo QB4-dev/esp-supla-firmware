@@ -59,27 +59,15 @@ esp_err_t board_early_init(void)
 
 esp_err_t board_supla_init(supla_dev_t *dev)
 {
-    struct binary_sensor_config binary_sensor1_conf = {
-        .gpio = GPIO_NUM_16,
-        .default_function = SUPLA_CHANNELFNC_OPENINGSENSOR_GARAGEDOOR,
-        .supported_functions = 0xff
-    };
 
     struct relay_channel_config relay_channel_conf = {
         .gpio = GPIO_NUM_2,
-        .default_function = SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR,
-        .supported_functions = 0xff
-        //SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
+        .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
+        .supported_functions = SUPLA_BIT_FUNC_POWERSWITCH | SUPLA_BIT_FUNC_LIGHTSWITCH | SUPLA_BIT_FUNC_STAIRCASETIMER
     };
 
     button_init(&btn);
-
-    input1_channel = supla_binary_sensor_create(&binary_sensor1_conf);
-    // input2_channel = supla_binary_sensor_create(&binary_sensor2_conf);
     relay_channel = supla_relay_channel_create(&relay_channel_conf);
-
-    supla_dev_add_channel(dev, input1_channel);
-    //supla_dev_add_channel(dev, input2_channel);
     supla_dev_add_channel(dev, relay_channel);
 
     supla_dev_enable_notifications(dev, 0x00);
