@@ -22,7 +22,6 @@
 #define REDUCTION_GR "BRCTL"
 
 static const char *TAG = "BSP";
-
 static const char *active_level_labels[] = { [ACTIVE_LOW] = "LOW", [ACTIVE_HIGH] = "HIGH", NULL };
 
 static setting_t input1_settings[] = {

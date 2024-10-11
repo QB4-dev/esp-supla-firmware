@@ -18,9 +18,9 @@
 
 static const char *TAG = "APP";
 
-static supla_dev_t        *supla_dev;
-static struct supla_config supla_config;
 static char                hostname[32];
+static supla_dev_t        *supla_dev;
+static struct supla_config supla_config = { .ssl = 1 };
 
 static void net_event_handler(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
@@ -117,7 +117,6 @@ static esp_err_t supla_device_init(void)
     supla_dev_set_common_channel_state_callback(supla_dev, supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev, supla_esp_server_time_sync);
     supla_dev_set_server_req_restart_callback(supla_dev, supla_esp_restart_callback);
-    supla_config.ssl = 1;
     supla_dev_set_config(supla_dev, &supla_config);
     supla_esp_generate_hostname(supla_dev, hostname, sizeof(hostname));
     return ESP_OK;
