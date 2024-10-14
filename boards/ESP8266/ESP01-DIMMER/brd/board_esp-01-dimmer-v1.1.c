@@ -20,6 +20,7 @@
 #define IN1_SETTINGS_GR "IN1"
 #define IN2_SETTINGS_GR "IN2"
 #define REDUCTION_GR "BRCTL"
+#define PAUSE_GR "PAUSE"
 
 static const char *TAG = "BSP";
 static const char *active_level_labels[] = { [ACTIVE_LOW] = "LOW", [ACTIVE_HIGH] = "HIGH", NULL };
@@ -56,10 +57,18 @@ static setting_t brightness_settings[] = {
     {} //last element
 };
 
+static setting_t pause_settings[] = {
+    { .id = "EN", .label = "ENABLED", .type = SETTING_TYPE_BOOL, .boolean = { false, false } },
+    { .id = "FROM", .label = "FROM", .type = SETTING_TYPE_TIME, .time = { 12, 35 } },
+    { .id = "TO", .label = "TO", .type = SETTING_TYPE_TIME, .time = { 14, 10 } },
+    {} //last element
+};
+
 static const settings_group_t board_settings[] = {
     { .id = IN1_SETTINGS_GR, .label = IN1_SETTINGS_GR, .settings = input1_settings },
     { .id = IN2_SETTINGS_GR, .label = IN2_SETTINGS_GR, .settings = input2_settings },
     { .id = REDUCTION_GR, .label = "REDUCE BRIGHTNESS", .settings = brightness_settings },
+    { .id = PAUSE_GR, .label = "PAUSE", .settings = pause_settings },
     {}
 };
 
@@ -104,11 +113,23 @@ static int time_is_between(int start_hh, int start_mm, int end_hh, int end_mm)
         return (time_mm >= start_time_mm && time_mm >= end_time_mm);
 }
 
-static bool brightness_reduction_active(void)
+static bool brightness_reduction_is_active(void)
 {
     setting_t *enabled = settings_pack_find(bsp->settings_pack, REDUCTION_GR, "EN");
     setting_t *from = settings_pack_find(bsp->settings_pack, REDUCTION_GR, "FROM");
     setting_t *to = settings_pack_find(bsp->settings_pack, REDUCTION_GR, "TO");
+
+    if (!enabled || !enabled->boolean.val || !from || !to)
+        return false;
+
+    return time_is_between(from->time.hh, from->time.mm, to->time.hh, to->time.mm);
+}
+
+static bool pause_is_active(void)
+{
+    setting_t *enabled = settings_pack_find(bsp->settings_pack, PAUSE_GR, "EN");
+    setting_t *from = settings_pack_find(bsp->settings_pack, PAUSE_GR, "FROM");
+    setting_t *to = settings_pack_find(bsp->settings_pack, PAUSE_GR, "TO");
 
     if (!enabled || !enabled->boolean.val || !from || !to)
         return false;
@@ -167,7 +188,12 @@ static void input_calback(gpio_num_t pin_num, exp_input_event_t event, void *arg
     switch (event) {
     case EXP_INPUT_EVENT_INIT:
         ESP_LOGI(TAG, "input %d init", pin_num);
-        if (brightness_reduction_active()) {
+        if (pause_is_active()) {
+            ESP_LOGW(TAG, "pause active");
+            break;
+        }
+
+        if (brightness_reduction_is_active()) {
             rgbw->brightness = reduced_br_set ? reduced_br_set->num.val : 100;
             ESP_LOGW(TAG, "reduced brightness to %d", rgbw->brightness);
         } else {
