@@ -1,10 +1,3 @@
-/*
- * esp-4ch.c
- *
- *  Created on: 29 sie 2023
- *      Author: kuba
- */
-
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -13,7 +6,7 @@
 #include <board.h>
 #include <button.h>
 #include <binary-sensor.h>
-#include <relay-channel.h>
+#include <rs-channel.h>
 
 #ifdef CONFIG_BSP_NODE_MCU
 
@@ -25,18 +18,15 @@ static bsp_t brd_nodemcu = { .id = "NodeMCU", .ver = "1.0", .settings_pack = boa
 
 bsp_t *const bsp = &brd_nodemcu;
 
-static supla_channel_t *relay_channel;
+static supla_channel_t *rs_channel;
 static supla_dev_t     *supla_dev;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
-    TRelayChannel_Value relay_value = {};
-    EventBits_t         bits = device_get_event_bits();
+    EventBits_t bits = device_get_event_bits();
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
-        relay_value.hi = !supla_relay_channel_get_state(relay_channel);
-        supla_relay_channel_set_local(relay_channel, &relay_value);
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");
@@ -60,17 +50,18 @@ esp_err_t board_early_init(void)
 
 esp_err_t board_supla_init(supla_dev_t *dev)
 {
-    struct relay_channel_config relay_channel_conf = {
-        .gpio = GPIO_NUM_2,
-        .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
-        .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS
+    struct rs_channel_config rs_channel_conf = {
+        .gpio_fwd = GPIO_NUM_2,
+        .gpio_bck = GPIO_NUM_15,
+        .default_function = SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER,
+        .supported_functions = RS_CH_SUPPORTED_FUNC_BITS //
     };
 
     button_init(&btn);
-    relay_channel = supla_relay_channel_create(&relay_channel_conf);
-    supla_channel_set_default_caption(relay_channel, "RELAY");
+    rs_channel = supla_rs_channel_create(&rs_channel_conf);
+    supla_channel_set_default_caption(rs_channel, "RS");
 
-    supla_dev_add_channel(dev, relay_channel);
+    supla_dev_add_channel(dev, rs_channel);
     //supla_dev_enable_notifications(dev, 0x00);
 
     supla_dev = dev; //store pointer

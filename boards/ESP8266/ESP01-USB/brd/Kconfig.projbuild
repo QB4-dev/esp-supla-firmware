@@ -8,5 +8,8 @@ menu "Board Select"
 	config BSP_ESP01_USB
 	    bool "BSP_ESP01_USB"
 
+	config BSP_ESP01_USB_DHT
+	    bool "BSP_ESP01_USB_DHT"
+
 	endchoice
 endmenu
