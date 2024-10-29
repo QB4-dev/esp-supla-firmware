@@ -29,7 +29,7 @@ int supla_rgbw_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *
     return supla_channel_set_rgbw_value(ch, rgbw);
 }
 
-supla_channel_t *supla_rgbw_channel_create(const struct rgbw_channel_config *ch_conf)
+supla_channel_t *supla_ext_rgbw_channel_create(const struct rgbw_channel_config *ch_conf)
 {
     supla_channel_config_t supla_channel_config = {
         .type = SUPLA_CHANNELTYPE_DIMMERANDRGBLED,
