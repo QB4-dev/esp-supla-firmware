@@ -1,10 +1,3 @@
-/*
- * esp-4ch.c
- *
- *  Created on: 29 sie 2023
- *      Author: kuba
- */
-
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>

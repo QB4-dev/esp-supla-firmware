@@ -14,7 +14,7 @@ struct rgbw_channel_config {
     uint32_t fade_time; //ms
 };
 
-supla_channel_t *supla_ext_rgbw_channel_create(const struct rgbw_channel_config *ch_conf);
+supla_channel_t *pca9632_rgbw_channel_create(const struct rgbw_channel_config *ch_conf);
 
 int supla_rgbw_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
