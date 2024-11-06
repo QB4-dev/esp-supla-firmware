@@ -1,10 +1,12 @@
 function tab(e, id) {
+  let btn = document.getElementById("menu-btn");
   let tab = document.getElementsByClassName("tab");
   for (var i = 0; i < tab.length; i++)
     tab[i].style.display = "none";
 
   document.getElementById(id).style.display = "block";
   e.currentTarget.className += " active";
+  btn.checked = false;
 }
 
 function reset(e) {

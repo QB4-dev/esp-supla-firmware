@@ -42,7 +42,7 @@ static setting_t out_settings[] = {
       .type = SETTING_TYPE_ONEOF,
       .oneof = { OUT_MODE_COLOR, OUT_MODE_COLOR, mode_labels } },
     { .id = "RGBW_MAP",
-      .label = "RGBW MAP",
+      .label = "COLOR MAP",
       .type = SETTING_TYPE_ONEOF,
       .oneof = { RGBW_MAP_GBRW, RGBW_MAP_GBRW, map_labels } },
     {} //last element
@@ -53,11 +53,11 @@ static const settings_group_t board_settings[] = {
     {}
 };
 
-static bsp_t brd_esp01_dimmer = { .id = "ESP-01_RGBW",
-                                  .ver = "1.0",
-                                  .settings_pack = board_settings };
+static bsp_t brd_esp01_rgbw = { .id = "ESP-01_RGBW",
+                                .ver = "1.0",
+                                .settings_pack = board_settings };
 
-bsp_t *const bsp = &brd_esp01_dimmer;
+bsp_t *const bsp = &brd_esp01_rgbw;
 
 static i2c_dev_t        pca9632;
 static supla_channel_t *rgbw_channel;
@@ -121,11 +121,11 @@ static void pulse_task(void *arg)
 
             switch (output_mode->oneof.val) {
             case OUT_MODE_COLOR:
-                supla_pca9632_channel_set_value(rgbw_channel, &new_value);
+                pca9632_channel_set_value(rgbw_channel, &new_value);
                 break;
             case OUT_MODE_4xDIMMER:
                 for (int led = LED0; led <= LED3; led++)
-                    supla_pca9632_channel_set_value(dimmer_channels[led], &new_value);
+                    pca9632_channel_set_value(dimmer_channels[led], &new_value);
                 break;
             default:
                 break;
@@ -180,14 +180,14 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 esp_err_t board_on_config_mode_init(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
-    supla_pca9632_channel_set_value(rgbw_channel, &new_value);
+    pca9632_channel_set_value(rgbw_channel, &new_value);
     return ESP_OK;
 }
 
 esp_err_t board_on_config_mode_exit(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
-    supla_pca9632_channel_set_value(rgbw_channel, &new_value);
+    pca9632_channel_set_value(rgbw_channel, &new_value);
     return ESP_OK;
 }
 

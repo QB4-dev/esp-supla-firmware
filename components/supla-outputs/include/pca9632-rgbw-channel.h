@@ -31,6 +31,6 @@ struct pca9632_dimmer_channel_config {
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *ch_conf);
 supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_channel_config *config);
 
-int supla_pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+int pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
 #endif /* _SUPLA_RGBW_CHANNEL_H_ */

@@ -7,19 +7,49 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
-#define CH_MUTEX_TIMEOUT 1000 //ms
+#define CHANNEL_MUTEX_TIMEOUT 1000 //ms
+
+#define CHANNEL_SEMAPHORE_TAKE(mutex)                                           \
+    do {                                                                        \
+        if (!xSemaphoreTake(mutex, CHANNEL_MUTEX_TIMEOUT / portTICK_RATE_MS)) { \
+            ESP_LOGE(TAG, "can't take mutex");                                  \
+            return ESP_ERR_TIMEOUT;                                             \
+        }                                                                       \
+    } while (0)
+
+#define CHANNEL_SEMAPHORE_GIVE(mutex)          \
+    do {                                       \
+        if (!xSemaphoreGive(mutex)) {          \
+            ESP_LOGE(TAG, "can't give mutex"); \
+            return ESP_FAIL;                   \
+        }                                      \
+    } while (0)
+
+static const char *TAG = "RGBW-CH";
 
 struct channel_data {
     SemaphoreHandle_t  mutex;
     i2c_dev_t         *i2c_dev;
-    pca9632_led_t      output;
-    rgbw_mapping_t     rgbw_map;
     TRGBW_Value        val;
     TRGBW_Value        target;
     esp_timer_handle_t timer;
+    union {
+        rgbw_mapping_t rgbw_map; //for RGBW channel
+        pca9632_led_t  output;   //for dimmer channel
+    };
 };
 
-int supla_pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
+static uint8_t value_fade_tick(uint8_t val, uint8_t target, uint8_t step)
+{
+    if (val < target && (val + step) <= target)
+        return val + step;
+    else if (val > target && (val - step) >= target)
+        return val - step;
+    else
+        return target;
+}
+
+int pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     TRGBW_Value         *rgbw = (TRGBW_Value *)new_value->value;
     struct channel_data *ch_data;
@@ -32,32 +62,20 @@ int supla_pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValu
 
     ch_data = supla_channel_get_data(ch);
 
-    if (!xSemaphoreTake(ch_data->mutex, CH_MUTEX_TIMEOUT / portTICK_RATE_MS))
-        return ESP_FAIL;
+    CHANNEL_SEMAPHORE_TAKE(ch_data->mutex);
     ch_data->target = *rgbw;
-    xSemaphoreGive(ch_data->mutex);
+    CHANNEL_SEMAPHORE_GIVE(ch_data->mutex);
 
     return supla_channel_set_rgbw_value(ch, rgbw);
 }
 
-static uint8_t value_fade_tick(uint8_t yet, uint8_t target, uint8_t step)
+static esp_err_t pca9632_set_rgbw_value(struct channel_data *ch_data)
 {
-    if (yet < target && (yet + step) <= target)
-        return yet + step;
-    else if (yet > target && (yet - step) >= target)
-        return yet - step;
-    else
-        return target;
-}
+    i2c_dev_t     *pca9632;
+    uint8_t        r, g, b, w, cb;
+    rgbw_mapping_t map;
 
-static void rgb_deferred_fade(void *ch)
-{
-    struct channel_data *ch_data = supla_channel_get_data(ch);
-    rgbw_mapping_t       map = ch_data->rgbw_map;
-    uint8_t              r, g, b, w, cb;
-
-    if (!xSemaphoreTake(ch_data->mutex, CH_MUTEX_TIMEOUT / portTICK_RATE_MS))
-        return;
+    CHANNEL_SEMAPHORE_TAKE(ch_data->mutex);
     ch_data->val.R = value_fade_tick(ch_data->val.R, ch_data->target.R, 5);
     ch_data->val.G = value_fade_tick(ch_data->val.G, ch_data->target.G, 5);
     ch_data->val.B = value_fade_tick(ch_data->val.B, ch_data->target.B, 5);
@@ -66,46 +84,33 @@ static void rgb_deferred_fade(void *ch)
     ch_data->val.brightness =
         value_fade_tick(ch_data->val.brightness, ch_data->target.brightness, 1);
 
+    pca9632 = ch_data->i2c_dev;
     cb = ch_data->val.colorBrightness;
     r = (uint16_t)(ch_data->val.R * cb / 100);
     g = (uint16_t)(ch_data->val.G * cb / 100);
     b = (uint16_t)(ch_data->val.B * cb / 100);
     w = (uint16_t)(ch_data->val.brightness * 0xFF / 100);
-    xSemaphoreGive(ch_data->mutex);
+    map = ch_data->rgbw_map;
+    CHANNEL_SEMAPHORE_GIVE(ch_data->mutex);
 
     switch (map) {
     case RGBW_MAP_RGBW:
-        pca9632_set_pwm_all(ch_data->i2c_dev, r, g, b, w);
-        break;
+        return pca9632_set_pwm_all(pca9632, r, g, b, w);
     case RGBW_MAP_GBRW:
-        pca9632_set_pwm_all(ch_data->i2c_dev, g, b, r, w);
-        break;
+        return pca9632_set_pwm_all(pca9632, g, b, r, w);
     case RGBW_MAP_GRBW:
-        pca9632_set_pwm_all(ch_data->i2c_dev, g, r, b, w);
-        break;
+        return pca9632_set_pwm_all(pca9632, g, r, b, w);
     case RGBW_MAP_GRWB:
-        pca9632_set_pwm_all(ch_data->i2c_dev, g, r, w, b);
-        break;
+        return pca9632_set_pwm_all(pca9632, g, r, w, b);
     default:
-        break;
+        return ESP_ERR_INVALID_STATE;
     }
 }
 
-static void dimmer_deferred_fade(void *ch)
+static void rgb_deferred_fade(void *ch)
 {
     struct channel_data *ch_data = supla_channel_get_data(ch);
-    uint8_t              brightness;
-
-    if (!xSemaphoreTake(ch_data->mutex, CH_MUTEX_TIMEOUT / portTICK_RATE_MS))
-        return;
-
-    ch_data->val.brightness =
-        value_fade_tick(ch_data->val.brightness, ch_data->target.brightness, 1);
-
-    brightness = ch_data->val.brightness;
-    xSemaphoreGive(ch_data->mutex);
-
-    pca9632_set_pwm(ch_data->i2c_dev, ch_data->output, brightness);
+    pca9632_set_rgbw_value(ch_data);
 }
 
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *config)
@@ -115,7 +120,7 @@ supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_c
         .supported_functions = 0xFFFF,
         .default_function = SUPLA_CHANNELFNC_DIMMERANDRGBLIGHTING,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_RGBW_COMMANDS_SUPPORTED,
-        .on_set_value = supla_pca9632_channel_set_value
+        .on_set_value = pca9632_channel_set_value
     };
     esp_timer_create_args_t timer_args = {
         .name = "rgb-fade",
@@ -137,13 +142,37 @@ supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_c
     ch_data->mutex = xSemaphoreCreateMutex();
     ch_data->i2c_dev = config->pca9632;
     ch_data->rgbw_map = config->rgbw_map;
+    timer_args.arg = ch;
 
     supla_channel_set_data(ch, ch_data);
     pca9632_set_pwm_all(ch_data->i2c_dev, 0x00, 0x00, 0x00, 0x00);
-    timer_args.arg = ch;
     esp_timer_create(&timer_args, &ch_data->timer);
     esp_timer_start_periodic(ch_data->timer, 10000);
     return ch;
+}
+
+static esp_err_t pca9632_set_dimmer_value(struct channel_data *ch_data)
+{
+    i2c_dev_t    *pca9632;
+    pca9632_led_t out;
+    uint8_t       brightness;
+
+    CHANNEL_SEMAPHORE_TAKE(ch_data->mutex);
+    pca9632 = ch_data->i2c_dev;
+    ch_data->val.brightness =
+        value_fade_tick(ch_data->val.brightness, ch_data->target.brightness, 1);
+
+    out = ch_data->output;
+    brightness = ch_data->val.brightness;
+    CHANNEL_SEMAPHORE_GIVE(ch_data->mutex);
+
+    return pca9632_set_pwm(pca9632, out, brightness);
+}
+
+static void dimmer_deferred_fade(void *ch)
+{
+    struct channel_data *ch_data = supla_channel_get_data(ch);
+    pca9632_set_dimmer_value(ch_data);
 }
 
 supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_channel_config *config)
@@ -157,7 +186,7 @@ supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_chann
         .supported_functions = 0xFFFF,
         .default_function = SUPLA_CHANNELFNC_DIMMER,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
-        .on_set_value = supla_pca9632_channel_set_value,
+        .on_set_value = pca9632_channel_set_value,
         .default_caption = out_captions[config->output] //
     };
 
@@ -181,10 +210,10 @@ supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_chann
     ch_data->mutex = xSemaphoreCreateMutex();
     ch_data->i2c_dev = config->pca9632;
     ch_data->output = config->output;
+    timer_args.arg = ch;
 
     supla_channel_set_data(ch, ch_data);
     pca9632_set_pwm(ch_data->i2c_dev, ch_data->output, 0x00);
-    timer_args.arg = ch;
     esp_timer_create(&timer_args, &ch_data->timer);
     esp_timer_start_periodic(ch_data->timer, 10000);
     return ch;
