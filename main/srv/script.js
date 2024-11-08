@@ -163,6 +163,9 @@ function getSettingsForm(){
 						let time = String(item.hh).padStart(2,'0')+":"+String(item.mm).padStart(2,'0');
 						html+=`<span class="label-inline">${item.label}</span><input type="time" name="${gr.id}:${item.id}" min="00:00" max="23:59" value="${time}" style="width:150px"/><br>`;
 						break;
+					case "COLOR":
+						html+=`<span class="label-inline">${item.label}</span><input type="color" name="${gr.id}:${item.id}" value="${item.val}" style="width:50px"/><br>`;
+						break;
 					default:
 						break;
 				}
