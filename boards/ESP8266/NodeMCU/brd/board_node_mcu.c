@@ -12,9 +12,22 @@
 
 static const char *TAG = "BSP";
 
-static const settings_group_t board_settings_pack[] = { {} };
+#define COLOR_SETTINGS_GR "GR"
 
-static bsp_t brd_nodemcu = { .id = "NodeMCU", .ver = "1.0", .settings_pack = board_settings_pack };
+static setting_t out_settings[] = {
+    { .id = "COLOR",
+      .label = "MANUAL COLOR",
+      .type = SETTING_TYPE_COLOR,
+      .color = { { 0xFF, 0xFF, 0xFF } } },
+    {} //last element
+};
+
+static const settings_group_t board_settings[] = {
+    { .id = COLOR_SETTINGS_GR, .label = "GROUP", .settings = out_settings },
+    {}
+};
+
+static bsp_t brd_nodemcu = { .id = "NodeMCU", .ver = "1.0", .settings_pack = board_settings };
 
 bsp_t *const bsp = &brd_nodemcu;
 
@@ -45,6 +58,9 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 esp_err_t board_early_init(void)
 {
     esp_set_cpu_freq(ESP_CPU_FREQ_160M);
+    settings_nvs_read(bsp->settings_pack);
+    settings_pack_print(bsp->settings_pack);
+    button_init(&btn);
     return ESP_OK;
 }
 
@@ -57,7 +73,6 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .supported_functions = RS_CH_SUPPORTED_FUNC_BITS //
     };
 
-    button_init(&btn);
     rs_channel = supla_rs_channel_create(&rs_channel_conf);
     supla_channel_set_default_caption(rs_channel, "RS");
 
