@@ -29,7 +29,6 @@ static const char *TAG = "WiFi";
 
 esp_err_t wifi_init(esp_event_handler_t eh)
 {
-    //tcpip_adapter_init();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, eh, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, eh, NULL));
