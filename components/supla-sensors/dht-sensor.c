@@ -29,6 +29,7 @@ supla_channel_t *supla_channel_dht_create(const struct dht_channel_config *confi
         .type = SUPLA_CHANNELTYPE_HUMIDITYANDTEMPSENSOR,
         .supported_functions = SUPLA_CHANNELFNC_HUMIDITYANDTEMPERATURE,
         .default_function = SUPLA_CHANNELFNC_HUMIDITYANDTEMPERATURE,
+        .default_caption = "DHT",
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE
     };
     uint32_t                 poll_interval;

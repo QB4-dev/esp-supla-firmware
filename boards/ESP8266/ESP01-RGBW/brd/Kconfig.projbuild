@@ -1,15 +1,12 @@
 menu "Board Select"
 	choice
 	prompt "Target board"
-            default BSP_ESP01_USB
+            default BSP_ESP01_RGBW_v1_0
             help
                 Select target board
                 
-	config BSP_ESP01_USB
-	    bool "BSP_ESP01_USB"
-
-	config BSP_ESP01_USB_DHT
-	    bool "BSP_ESP01_USB_DHT"
+	config BSP_ESP01_RGBW_v1_0
+	    bool "ESP-01 RGBW v1.0"
 
 	endchoice
 endmenu

@@ -123,6 +123,7 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
         .type = SUPLA_CHANNELTYPE_RELAY,
         .supported_functions = config->supported_functions,
         .default_function = config->default_function,
+        .default_caption = "RELAY",
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_COUNTDOWN_TIMER_SUPPORTED,
         .on_channel_init = supla_relay_channel_init,
         .on_set_value = supla_relay_channel_set,

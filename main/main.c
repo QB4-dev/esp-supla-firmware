@@ -18,9 +18,14 @@
 
 static const char *TAG = "APP";
 
-static char                hostname[32];
-static supla_dev_t        *supla_dev;
-static struct supla_config supla_config = { .ssl = 1 };
+static char         hostname[32];
+static supla_dev_t *supla_dev;
+
+static struct supla_config supla_config = {
+#ifdef CONFIG_ESP_LIBSUPLA_USE_ESP_TLS
+    .ssl = 1
+#endif
+};
 
 static void net_event_handler(void *arg, esp_event_base_t base, int32_t id, void *data)
 {

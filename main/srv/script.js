@@ -1,10 +1,12 @@
 function tab(e, id) {
+  let btn = document.getElementById("menu-btn");
   let tab = document.getElementsByClassName("tab");
   for (var i = 0; i < tab.length; i++)
     tab[i].style.display = "none";
 
   document.getElementById(id).style.display = "block";
   e.currentTarget.className += " active";
+  btn.checked = false;
 }
 
 function reset(e) {
@@ -160,6 +162,9 @@ function getSettingsForm(){
 					case "TIME":
 						let time = String(item.hh).padStart(2,'0')+":"+String(item.mm).padStart(2,'0');
 						html+=`<span class="label-inline">${item.label}</span><input type="time" name="${gr.id}:${item.id}" min="00:00" max="23:59" value="${time}" style="width:150px"/><br>`;
+						break;
+					case "COLOR":
+						html+=`<span class="label-inline">${item.label}</span><input type="color" name="${gr.id}:${item.id}" value="${item.val}" style="width:50px"/><br>`;
 						break;
 					default:
 						break;

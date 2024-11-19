@@ -1,5 +1,14 @@
+execute_process(COMMAND bash -c ${COMPONENT_PATH}/compress_webdata.sh 
+    WORKING_DIRECTORY ${COMPONENT_PATH} 
+    OUTPUT_VARIABLE SRV_FILES_LIST
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_VARIABLE ERR
+)
+spaces2list(SRV_FILES_LIST)
+set(ADDITIONAL_CLEAN_FILES ${SRV_FILES_LIST})
+
 idf_component_register(
     SRC_DIRS "."
     INCLUDE_DIRS "."
-    EMBED_FILES "srv/supla.css.gz" "srv/index.html.gz" "srv/script.js.gz"
+    EMBED_FILES ${SRV_FILES_LIST}
 )

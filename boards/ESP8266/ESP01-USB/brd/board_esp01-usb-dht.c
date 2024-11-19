@@ -1,10 +1,3 @@
-/*
- * esp-4ch.c
- *
- *  Created on: 29 sie 2023
- *      Author: kuba
- */
-
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -16,7 +9,7 @@
 #include <dht-sensor.h>
 #include <relay-channel.h>
 
-#ifdef CONFIG_BSP_ESP01_USB
+#ifdef CONFIG_BSP_ESP01_USB_DHT
 
 static const char *TAG = "BSP";
 
@@ -38,7 +31,9 @@ static const settings_group_t board_settings[] = {
     {}
 };
 
-static bsp_t brd_esp01_usb = { .id = "ESP-01 USB", .ver = "1.0", .settings_pack = board_settings };
+static bsp_t brd_esp01_usb = { .id = "ESP-01 USB DHT",
+                               .ver = "1.0",
+                               .settings_pack = board_settings };
 
 bsp_t *const bsp = &brd_esp01_usb;
 
