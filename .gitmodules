@@ -1,0 +1,9 @@
+[submodule "components/esp-idf-lib"]
+	path = components/esp-idf-lib
+	url = https://github.com/QB4-dev/esp-idf-lib
+[submodule "components/esp_http_server_utils"]
+	path = components/esp_http_server_utils
+	url = https://github.com/QB4-dev/esp_httpd_server_utils
+[submodule "components/esp-libsupla"]
+	path = components/esp-libsupla
+	url = https://github.com/QB4-dev/esp-libsupla
