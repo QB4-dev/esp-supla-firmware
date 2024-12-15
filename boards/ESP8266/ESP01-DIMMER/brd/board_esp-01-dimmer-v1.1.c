@@ -103,7 +103,7 @@ static int time_is_between(int start_hh, int start_mm, int end_hh, int end_mm)
     if (start_time_mm < end_time_mm)
         return (time_mm >= start_time_mm && time_mm <= end_time_mm);
     else
-        return (time_mm >= start_time_mm && time_mm >= end_time_mm);
+        return (time_mm >= (start_time_mm - (24 * 60)) && time_mm <= end_time_mm);
 }
 
 static bool brightness_reduction_is_active(void)
