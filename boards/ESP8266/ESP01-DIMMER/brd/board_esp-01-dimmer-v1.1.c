@@ -26,7 +26,7 @@ static setting_t input1_settings[] = {
     { .id = "OFF_DELAY",
       .label = "OFF DELAY",
       .type = SETTING_TYPE_NUM,
-      .num = { 1, 1, { 1, 600 } } },
+      .num = { 10, 10, { 1, 600 } } },
     {} //last element
 };
 
@@ -38,30 +38,30 @@ static setting_t input2_settings[] = {
     { .id = "OFF_DELAY",
       .label = "OFF DELAY",
       .type = SETTING_TYPE_NUM,
-      .num = { 1, 1, { 1, 600 } } },
+      .num = { 10, 10, { 1, 600 } } },
+    {} //last element
+};
+
+static setting_t pause_settings[] = {
+    { .id = "EN", .label = "ENABLED", .type = SETTING_TYPE_BOOL, .boolean = { false, false } },
+    { .id = "FROM", .label = "FROM", .type = SETTING_TYPE_TIME, .time = { 8, 00 } },
+    { .id = "TO", .label = "TO", .type = SETTING_TYPE_TIME, .time = { 17, 00 } },
     {} //last element
 };
 
 static setting_t brightness_settings[] = {
     { .id = "EN", .label = "ENABLED", .type = SETTING_TYPE_BOOL, .boolean = { false, false } },
     { .id = "BR", .label = "BRIGHTNESS", .type = SETTING_TYPE_NUM, .num = { 100, 100, { 0, 100 } } },
-    { .id = "FROM", .label = "FROM", .type = SETTING_TYPE_TIME, .time = { 12, 35 } },
-    { .id = "TO", .label = "TO", .type = SETTING_TYPE_TIME, .time = { 14, 10 } },
-    {} //last element
-};
-
-static setting_t pause_settings[] = {
-    { .id = "EN", .label = "ENABLED", .type = SETTING_TYPE_BOOL, .boolean = { false, false } },
-    { .id = "FROM", .label = "FROM", .type = SETTING_TYPE_TIME, .time = { 12, 35 } },
-    { .id = "TO", .label = "TO", .type = SETTING_TYPE_TIME, .time = { 14, 10 } },
+    { .id = "FROM", .label = "FROM", .type = SETTING_TYPE_TIME, .time = { 21, 00 } },
+    { .id = "TO", .label = "TO", .type = SETTING_TYPE_TIME, .time = { 4, 00 } },
     {} //last element
 };
 
 static const settings_group_t board_settings[] = {
     { .id = IN1_SETTINGS_GR, .label = IN1_SETTINGS_GR, .settings = input1_settings },
     { .id = IN2_SETTINGS_GR, .label = IN2_SETTINGS_GR, .settings = input2_settings },
-    { .id = REDUCTION_GR, .label = "REDUCE BRIGHTNESS", .settings = brightness_settings },
     { .id = PAUSE_GR, .label = "PAUSE", .settings = pause_settings },
+    { .id = REDUCTION_GR, .label = "REDUCE BRIGHTNESS", .settings = brightness_settings },
     {}
 };
 
