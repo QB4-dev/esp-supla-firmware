@@ -86,24 +86,22 @@ esp_err_t board_early_init(void)
 
 static int time_is_between(int start_hh, int start_mm, int end_hh, int end_mm)
 {
-    struct tm *lt;
-    time_t     now;
-    int        hh, mm;
+    time_t     now = time(NULL);
+    struct tm *current_time = localtime(&now);
 
-    time(&now);
-    lt = localtime(&now);
+    // Current time in minutes since midnight
+    int current_minutes = current_time->tm_hour * 60 + current_time->tm_min;
 
-    hh = lt->tm_hour;
-    mm = lt->tm_min;
+    // Start time in minutes since midnight
+    int start_minutes = start_hh * 60 + start_mm;
 
-    int start_time_mm = start_hh * 60 + start_mm;
-    int end_time_mm = end_hh * 60 + end_mm;
-    int time_mm = hh * 60 + mm;
+    // End time in minutes since midnight
+    int end_minutes = end_hh * 60 + end_mm;
 
-    if (start_time_mm < end_time_mm)
-        return (time_mm >= start_time_mm && time_mm <= end_time_mm);
+    if (start_minutes <= end_minutes)
+        return current_minutes >= start_minutes && current_minutes <= end_minutes;
     else
-        return (time_mm >= (start_time_mm - (24 * 60)) && time_mm <= end_time_mm);
+        return current_minutes >= start_minutes || current_minutes <= end_minutes;
 }
 
 static bool brightness_reduction_is_active(void)
