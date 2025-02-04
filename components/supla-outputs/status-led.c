@@ -13,12 +13,11 @@
 #include <esp_log.h>
 
 struct led_data {
-    const supla_dev_t *supla_dev;
-    gpio_num_t         gpio;
-    bool               on;
-    uint16_t           ontime, offtime;
-    esp_timer_handle_t timer;
-    esp_timer_handle_t state_timer;
+    struct status_led_config conf;
+    bool                     on;
+    uint16_t                 ontime, offtime;
+    esp_timer_handle_t       timer;
+    esp_timer_handle_t       state_timer;
 };
 
 static void led_timer_callback(void *arg)
@@ -26,7 +25,7 @@ static void led_timer_callback(void *arg)
     struct led_data *led = arg;
 
     led->on = !led->on;
-    gpio_set_level(led->gpio, led->on);
+    gpio_set_level(led->conf.gpio, led->on);
     esp_timer_start_periodic(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
 }
 
@@ -37,14 +36,14 @@ static esp_err_t led_set_state(struct led_data *led, uint16_t ontime, uint16_t o
     led->offtime = offtime;
 
     if (ontime == 0) {
-        led->on = false;
-        gpio_set_level(led->gpio, led->on);
+        led->on = !led->conf.inv_logic ? false : true;
+        gpio_set_level(led->conf.gpio, led->on);
     } else if (offtime == 0) {
-        led->on = true;
-        gpio_set_level(led->gpio, led->on);
+        led->on = !led->conf.inv_logic ? true : false;
+        gpio_set_level(led->conf.gpio, led->on);
     } else {
-        led->on = true;
-        gpio_set_level(led->gpio, led->on);
+        led->on = !led->conf.inv_logic ? true : false;
+        gpio_set_level(led->conf.gpio, led->on);
         esp_timer_start_periodic(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
     }
     return ESP_OK;
@@ -55,7 +54,7 @@ static void state_timer_callback(void *arg)
     struct led_data  *led = arg;
     supla_dev_state_t st;
 
-    if (supla_dev_get_state(led->supla_dev, &st) != SUPLA_RESULT_TRUE)
+    if (supla_dev_get_state(led->conf.supla_dev, &st) != SUPLA_RESULT_TRUE)
         return;
 
     switch (st) {
@@ -75,20 +74,21 @@ static void state_timer_callback(void *arg)
         led_set_state(led, 10, 10);
         break;
     case SUPLA_DEV_STATE_ONLINE:
-        led_set_state(led, 0, 0);
+        led_set_state(led, led->conf.online_set, 0);
         break;
     default:
         break;
     }
 }
 
-supla_status_led_t supla_status_led_init(const supla_dev_t *dev, const gpio_num_t gpio)
+supla_status_led_t supla_status_led_init(const struct status_led_config *config)
 {
     struct led_data *led;
-    gpio_config_t    gpio_conf = {
-           .pin_bit_mask = (1 << gpio),
-           .mode = GPIO_MODE_OUTPUT,
-           .intr_type = GPIO_INTR_DISABLE //
+
+    gpio_config_t gpio_conf = {
+        .pin_bit_mask = (1 << config->gpio),
+        .mode = GPIO_MODE_OUTPUT,
+        .intr_type = GPIO_INTR_DISABLE //
     };
     esp_timer_create_args_t led_timer_args = {
         .name = "status-led",
@@ -106,8 +106,7 @@ supla_status_led_t supla_status_led_init(const supla_dev_t *dev, const gpio_num_
         return NULL;
     }
 
-    led->supla_dev = dev;
-    led->gpio = gpio;
+    led->conf = *config;
     led->ontime = 0;
     led->offtime = 0;
     led_timer_args.arg = led;
