@@ -120,3 +120,13 @@ supla_status_led_t supla_status_led_init(supla_dev_t *dev, const struct status_l
     esp_timer_start_periodic(led->state_timer, 1000 * 1000);
     return led;
 }
+
+int supla_status_led_delete(supla_status_led_t led)
+{
+    struct led_data *data = led;
+
+    esp_timer_delete(data->timer);
+    esp_timer_delete(data->state_timer);
+    free(data);
+    return ESP_OK;
+}
