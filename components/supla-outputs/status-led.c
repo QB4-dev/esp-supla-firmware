@@ -14,6 +14,7 @@
 
 struct led_data {
     struct status_led_config conf;
+    supla_dev_t             *supla_dev;
     bool                     on;
     uint16_t                 ontime, offtime;
     esp_timer_handle_t       timer;
@@ -54,7 +55,7 @@ static void state_timer_callback(void *arg)
     struct led_data  *led = arg;
     supla_dev_state_t st;
 
-    if (supla_dev_get_state(led->conf.supla_dev, &st) != SUPLA_RESULT_TRUE)
+    if (supla_dev_get_state(led->supla_dev, &st) != SUPLA_RESULT_TRUE)
         return;
 
     switch (st) {
@@ -81,7 +82,7 @@ static void state_timer_callback(void *arg)
     }
 }
 
-supla_status_led_t supla_status_led_init(const struct status_led_config *config)
+supla_status_led_t supla_status_led_init(supla_dev_t *dev, const struct status_led_config *config)
 {
     struct led_data *led;
 
@@ -106,6 +107,7 @@ supla_status_led_t supla_status_led_init(const struct status_led_config *config)
         return NULL;
     }
 
+    led->supla_dev = dev;
     led->conf = *config;
     led->ontime = 0;
     led->offtime = 0;
