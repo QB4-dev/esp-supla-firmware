@@ -1,10 +1,3 @@
-/*
- * device.h
- *
- *  Created on: 27 sty 2024
- *      Author: kuba
- */
-
 #ifndef MAIN_DEVICE_H_
 #define MAIN_DEVICE_H_
 

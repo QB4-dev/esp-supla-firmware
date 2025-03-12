@@ -1,10 +1,3 @@
-/*
- * device.c
- *
- *  Created on: 27 sty 2024
- *      Author: kuba
- */
-
 #include "device.h"
 
 /**
@@ -16,8 +9,8 @@ ESP_EVENT_DEFINE_BASE(DEV_EVENT);
 static const char *TAG = "DEV";
 
 static EventGroupHandle_t      dev_event_group;
-static TaskHandle_t            tsk_hdl;
 static esp_event_loop_handle_t event_loop_hdl;
+static TaskHandle_t            tsk_hdl;
 
 static void device_task_entry(void *arg)
 {
