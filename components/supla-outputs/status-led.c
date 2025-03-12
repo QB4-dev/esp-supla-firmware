@@ -1,10 +1,3 @@
-/*
- * sun-tracker-nvs.c
- *
- *  Created on: 23 cze 2023
- *      Author: kuba
- */
-
 #include "include/status-led.h"
 
 #include <stdlib.h>
