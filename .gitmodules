@@ -1,6 +1,6 @@
 [submodule "components/esp-idf-lib"]
 	path = components/esp-idf-lib
-	url = https://github.com/QB4-dev/esp-idf-lib
+	url = https://github.com/UncleRus/esp-idf-lib
 [submodule "components/esp-libsupla"]
 	path = components/esp-libsupla
 	url = https://github.com/QB4-dev/esp-libsupla
