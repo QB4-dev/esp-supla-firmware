@@ -120,7 +120,7 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     }
     data->gpio = input_conf->gpio;
     data->level = 1;
-    data->on_detect_cb = input_conf->on_detect_cb;
+    data->on_detect_cb = input_conf->on_event_cb;
     data->cb_arg = input_conf->arg;
     supla_channel_set_data(ch, data);
 

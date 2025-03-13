@@ -13,11 +13,11 @@
 
 typedef enum {
     INPUT_EVENT_INIT = 0,
-    INPUT_EVENT_CLICKx1,
-    INPUT_EVENT_CLICKx2,
-    INPUT_EVENT_CLICKx3,
-    INPUT_EVENT_CLICKx4,
-    INPUT_EVENT_CLICKx5,
+    INPUT_EVENT_CLICK1,
+    INPUT_EVENT_CLICK2,
+    INPUT_EVENT_CLICK3,
+    INPUT_EVENT_CLICK4,
+    INPUT_EVENT_CLICK5,
     INPUT_EVENT_DONE
 } input_event_t;
 
@@ -27,7 +27,7 @@ struct generic_input_config {
     gpio_num_t         gpio;
     unsigned int       action_trigger_caps;
     supla_channel_t  **related_channel;
-    on_input_calback_t on_detect_cb;
+    on_input_calback_t on_event_cb;
     void              *arg;
 };
 
