@@ -397,7 +397,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     supla_dev_add_channel(dev, input2_channel);
 
     xTaskCreate(&pulse_task, "pulse", 2048, NULL, tskIDLE_PRIORITY, NULL);
-    ESP_LOGI(TAG, "board init completed OK");
+    ESP_LOGI(TAG, "%s v%s  init completed OK", bsp->id, bsp->ver);
     return ESP_OK;
 }
 #endif // CONFIG_BSP_ESP01_DIMMER_v1_1 || CONFIG_BSP_ESP01_DIMMER_v1_2
