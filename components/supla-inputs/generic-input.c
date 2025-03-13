@@ -4,23 +4,23 @@
 #include <esp_timer.h>
 #include <esp_log.h>
 
-#define DEFAULT_POLL_INTERVAL_US 10000   //10ms
-#define DEAD_TIME_US 50000       //50ms
-#define BUF_RESET_TIME_US 500000 //500ms
+#define DEFAULT_POLL_INTERVAL_US 10000 //10ms
+#define DEAD_TIME_US 50000             //50ms
+#define BUF_RESET_TIME_US 500000       //500ms
 #define CLICK_EVENTS_MAX 5
-#define CLICK_MIN 75  //ms
+#define CLICK_MIN 100 //ms
 #define CLICK_MAX 250 //ms
 
 struct input_data {
-    gpio_num_t          gpio;
-    uint8_t             level;
-    esp_timer_handle_t  timer;
-    uint32_t            init_time;
-    uint32_t            idle_time;
-    uint32_t            buf[CLICK_EVENTS_MAX];
-    uint8_t             ev_num;
+    gpio_num_t         gpio;
+    uint8_t            level;
+    esp_timer_handle_t timer;
+    uint32_t           init_time;
+    uint32_t           idle_time;
+    uint32_t           buf[CLICK_EVENTS_MAX];
+    uint8_t            ev_num;
     on_input_calback_t on_detect_cb;
-    void               *cb_arg;
+    void              *cb_arg;
 };
 
 static void input_poll(void *arg)
@@ -52,7 +52,7 @@ static void input_poll(void *arg)
         // detection is active
         if (data->init_time == 0 && data->on_detect_cb) {
             //instant event
-            data->on_detect_cb(INPUT_EVENT_INIT, data->cb_arg);
+            data->on_detect_cb(data->gpio, INPUT_EVENT_INIT, data->cb_arg);
             //supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_ON);
         }
         data->init_time += DEFAULT_POLL_INTERVAL_US;
@@ -75,13 +75,13 @@ static void input_poll(void *arg)
                 valid_clicks++;
         }
         if (valid_clicks) {
-            data->on_detect_cb(valid_clicks, data->cb_arg);
+            data->on_detect_cb(data->gpio, valid_clicks, data->cb_arg);
             if (ch_config.action_trigger_caps & click_actions[valid_clicks])
                 supla_channel_emit_action(ch, click_actions[valid_clicks]);
         }
         memset(data->buf, 0, sizeof(data->buf));
         data->ev_num = 0;
-        data->on_detect_cb(INPUT_EVENT_DONE, data->cb_arg);
+        data->on_detect_cb(data->gpio, INPUT_EVENT_DONE, data->cb_arg);
         //supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_OFF);
     }
 }

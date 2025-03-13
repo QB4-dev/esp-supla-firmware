@@ -21,14 +21,14 @@ typedef enum {
     INPUT_EVENT_DONE
 } input_event_t;
 
-typedef void (*on_input_calback_t)(input_event_t event, void *);
+typedef void (*on_input_calback_t)(gpio_num_t pin_num, input_event_t event, void *);
 
 struct generic_input_config {
-    gpio_num_t          gpio;
-    unsigned int        action_trigger_caps;
-    supla_channel_t   **related_channel;
+    gpio_num_t         gpio;
+    unsigned int       action_trigger_caps;
+    supla_channel_t  **related_channel;
     on_input_calback_t on_detect_cb;
-    void               *arg;
+    void              *arg;
 };
 
 supla_channel_t *supla_generic_input_create(const struct generic_input_config *input_conf);
