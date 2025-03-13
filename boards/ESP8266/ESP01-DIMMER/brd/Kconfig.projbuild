@@ -10,6 +10,9 @@ menu "Board Select"
 	    
 	config BSP_ESP01_DIMMER_v1_1
 	    bool "ESP-01 DIMMER v1.1"
+	    
+	config BSP_ESP01_DIMMER_v1_2
+	    bool "ESP-01 DIMMER v1.2"
 
 	endchoice
 endmenu
