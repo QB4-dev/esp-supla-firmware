@@ -73,7 +73,6 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .gpio = GPIO_NUM_0, .callback = button_cb //
     };
     struct status_led_config led_conf = {
-        .supla_dev = dev,
         .gpio = GPIO_NUM_13,
         .online_set = led_setting ? led_setting->boolean.val : false //
     };
@@ -84,7 +83,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     };
 
     button_init(&config_btn_conf);
-    status_led = supla_status_led_init(&led_conf);
+    status_led = supla_status_led_init(dev, &led_conf);
     relay_channel = supla_relay_channel_create(&relay_channel_conf);
 
     supla_dev_add_channel(dev, relay_channel);

@@ -13,13 +13,13 @@ extern "C" {
 typedef void *supla_status_led_t;
 
 struct status_led_config {
-    supla_dev_t *supla_dev;
-    gpio_num_t   gpio;
-    bool         inv_logic;
-    bool         online_set;
+    gpio_num_t gpio;
+    bool       inv_logic;
+    bool       online_set;
 };
 
-supla_status_led_t supla_status_led_init(const struct status_led_config *config);
+supla_status_led_t supla_status_led_init(supla_dev_t *dev, const struct status_led_config *config);
+int                supla_status_led_delete(supla_status_led_t led);
 
 #ifdef __cplusplus
 }
