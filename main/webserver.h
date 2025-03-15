@@ -1,8 +1,7 @@
 /*
- * webserver.h
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 28 lis 2023
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef MAIN_WEBSERVER_H_

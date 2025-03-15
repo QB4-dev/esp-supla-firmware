@@ -1,8 +1,7 @@
 /*
- * esp-4ch.c
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 29 sie 2023
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include <sdkconfig.h>
@@ -197,7 +196,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         };
 
         for (int led = LED0; led <= LED3; led++) {
-            dimmer_channel_conf.output = led;
+            dimmer_channel_conf.pwm_output = led;
             dimmer_channels[led] = pca9632_dimmer_channel_create(&dimmer_channel_conf);
             supla_dev_add_channel(dev, dimmer_channels[led]);
         }

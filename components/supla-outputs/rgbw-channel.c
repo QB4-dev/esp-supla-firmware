@@ -1,4 +1,10 @@
-#include "rgbw-channel.h"
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
+#include "include/rgbw-channel.h"
 #include <stdlib.h>
 #include <esp_log.h>
 #include <esp_timer.h>

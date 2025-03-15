@@ -1,4 +1,11 @@
-#pragma once
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
+#ifndef _SUPLA_STATUS_LED_H_
+#define _SUPLA_STATUS_LED_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,3 +31,5 @@ int                supla_status_led_delete(supla_status_led_t led);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* _SUPLA_STATUS_LED_H_ */

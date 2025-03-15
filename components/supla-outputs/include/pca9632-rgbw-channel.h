@@ -1,12 +1,11 @@
 /*
- * dht.h
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 31 sty 2023
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#ifndef _SUPLA_EXT_RGBW_CHANNEL_H_
-#define _SUPLA_EXT_RGBW_CHANNEL_H_
+#ifndef _SUPLA_PCA9632_RGBW_CHANNEL_H_
+#define _SUPLA_PCA9632_RGBW_CHANNEL_H_
 
 #include <libsupla/channel.h>
 #include <pca9632.h>
@@ -25,7 +24,7 @@ struct pca9632_rgbw_channel_config {
 
 struct pca9632_dimmer_channel_config {
     i2c_dev_t    *pca9632;
-    pca9632_led_t output;
+    pca9632_led_t pwm_output;
 };
 
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *ch_conf);
@@ -33,4 +32,4 @@ supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_chann
 
 int pca9632_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
-#endif /* _SUPLA_RGBW_CHANNEL_H_ */
+#endif /* _SUPLA_PCA9632_RGBW_CHANNEL_H_ */

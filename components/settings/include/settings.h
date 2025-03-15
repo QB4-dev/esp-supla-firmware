@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #ifndef SETTINGS_H_
 #define SETTINGS_H_
 

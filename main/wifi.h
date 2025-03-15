@@ -1,8 +1,7 @@
 /*
- * wifi.h
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 8 wrz 2022
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef MAIN_WIFI_H_
