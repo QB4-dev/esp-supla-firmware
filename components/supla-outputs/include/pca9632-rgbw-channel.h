@@ -25,7 +25,7 @@ struct pca9632_rgbw_channel_config {
 
 struct pca9632_dimmer_channel_config {
     i2c_dev_t    *pca9632;
-    pca9632_led_t output;
+    pca9632_led_t pwm_output;
 };
 
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *ch_conf);

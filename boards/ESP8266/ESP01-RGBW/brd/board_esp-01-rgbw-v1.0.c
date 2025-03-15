@@ -197,7 +197,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         };
 
         for (int led = LED0; led <= LED3; led++) {
-            dimmer_channel_conf.output = led;
+            dimmer_channel_conf.pwm_output = led;
             dimmer_channels[led] = pca9632_dimmer_channel_create(&dimmer_channel_conf);
             supla_dev_add_channel(dev, dimmer_channels[led]);
         }
