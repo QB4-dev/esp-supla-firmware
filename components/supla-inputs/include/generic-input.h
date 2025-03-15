@@ -7,7 +7,7 @@
 #ifndef _SUPLA_CLICK_INPUT_H_
 #define _SUPLA_CLICK_INPUT_H_
 
-#include <libsupla/channel.h>
+#include <esp-supla.h>
 #include <driver/gpio.h>
 
 typedef enum {

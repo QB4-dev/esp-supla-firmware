@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <esp_timer.h>
-#include <esp-supla.h>
 
 #define DEFAULT_POLL_INTERVAL_MS 1000 //1000ms
 
@@ -29,10 +28,14 @@ static int supla_binary_sensor_channel_init(supla_channel_t *ch)
 {
     struct sensor_data *data = supla_channel_get_data(ch);
     const int           ch_num = supla_channel_get_assigned_number(ch);
+    esp_err_t           rc;
 
     supla_log(LOG_INFO, "ch[%d] bin_sensor init", ch_num);
-    supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
-    supla_log(LOG_INFO, "ch[%d] bin_sensor: func=%d", ch_num, data->nvs_config.active_func);
+    rc = supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
+    if (rc == ESP_OK) {
+        supla_log(LOG_INFO, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_config.active_func);
+        supla_channel_set_active_function(ch, data->nvs_config.active_func);
+    }
     return SUPLA_RESULTCODE_TRUE;
 }
 
