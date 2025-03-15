@@ -1,9 +1,15 @@
-#include "relay-channel.h"
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
+#include "include/relay-channel.h"
 #include <stdlib.h>
 #include <string.h>
-#include <driver/gpio.h>
 #include <esp_timer.h>
 #include <esp-supla.h>
+#include <driver/gpio.h>
 
 struct relay_nvs_config {
     int active_func;

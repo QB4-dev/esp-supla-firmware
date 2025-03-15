@@ -1,11 +1,15 @@
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #include "include/pca9632-rgbw-channel.h"
-
 #include <stdlib.h>
-#include <esp_log.h>
-#include <esp_timer.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <esp_log.h>
+#include <esp_timer.h>
 
 #define CHANNEL_MUTEX_TIMEOUT 1000 //ms
 
@@ -81,8 +85,8 @@ static esp_err_t pca9632_set_rgbw_value(struct channel_data *ch_data)
     ch_data->rgbw_value.B = value_fade_tick(ch_data->rgbw_value.B, ch_data->rgbw_target.B, 5);
     ch_data->rgbw_value.colorBrightness = value_fade_tick(ch_data->rgbw_value.colorBrightness,
                                                           ch_data->rgbw_target.colorBrightness, 1);
-    ch_data->rgbw_value.brightness = rgbw_mapping_t map;
-    value_fade_tick(ch_data->rgbw_value.brightness, ch_data->rgbw_target.brightness, 1);
+    ch_data->rgbw_value.brightness =
+        value_fade_tick(ch_data->rgbw_value.brightness, ch_data->rgbw_target.brightness, 1);
 
     pca9632 = ch_data->i2c_dev;
     cb = ch_data->rgbw_value.colorBrightness;

@@ -1,8 +1,7 @@
 /*
- * board.h
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 29 sie 2023
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef MAIN_BSP_BOARD_H_

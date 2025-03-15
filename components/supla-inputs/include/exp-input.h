@@ -1,8 +1,7 @@
 /*
- * exp-input.h
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- *  Created on: 31 sty 2023
- *      Author: kuba
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #ifndef _SUPLA_EXP_INPUT_H_

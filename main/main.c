@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #include <esp_system.h>
 #include <esp_log.h>
 #include <esp_event.h>
@@ -115,15 +121,17 @@ static void supla_dev_state_change_callback(supla_dev_t *dev, supla_dev_state_t 
 
 static esp_err_t supla_device_init(void)
 {
-    supla_esp_nvs_config_init(&supla_config);
     supla_dev = supla_dev_create(bsp->id, NULL);
+
     supla_dev_set_flags(supla_dev, SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
     supla_dev_set_state_changed_callback(supla_dev, supla_dev_state_change_callback);
     supla_dev_set_common_channel_state_callback(supla_dev, supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev, supla_esp_server_time_sync);
     supla_dev_set_server_req_restart_callback(supla_dev, supla_esp_restart_callback);
-    supla_dev_set_config(supla_dev, &supla_config);
     supla_esp_generate_hostname(supla_dev, hostname, sizeof(hostname));
+
+    supla_esp_nvs_config_init(&supla_config);
+    supla_dev_set_config(supla_dev, &supla_config);
     return ESP_OK;
 }
 

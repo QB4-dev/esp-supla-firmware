@@ -1,5 +1,10 @@
-#include "include/dht-sensor.h"
+/*
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
 
+#include "include/dht-sensor.h"
 #include <stdlib.h>
 #include <esp_timer.h>
 
