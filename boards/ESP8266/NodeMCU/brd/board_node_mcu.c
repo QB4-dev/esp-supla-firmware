@@ -11,6 +11,7 @@
 
 #include <board.h>
 #include <button.h>
+#include <status-led.h>
 #include <binary-sensor.h>
 #include <rs-channel.h>
 
@@ -37,8 +38,9 @@ static bsp_t brd_nodemcu = { .id = "NodeMCU", .ver = "1.0", .settings_pack = boa
 
 bsp_t *const bsp = &brd_nodemcu;
 
-static supla_channel_t *rs_channel;
-static supla_dev_t     *supla_dev;
+static supla_dev_t        *supla_dev;
+static supla_status_led_t *status_led;
+static supla_channel_t    *rs_channel;
 
 static void button_cb(button_t *btn, button_state_t state)
 {
@@ -72,13 +74,19 @@ esp_err_t board_early_init(void)
 
 esp_err_t board_supla_init(supla_dev_t *dev)
 {
+    struct status_led_config led_conf = {
+        .gpio = GPIO_NUM_2,
+        .online_set = true //
+    };
+
     struct rs_channel_config rs_channel_conf = {
-        .gpio_fwd = GPIO_NUM_2,
-        .gpio_bck = GPIO_NUM_15,
+        .gpio_fwd = GPIO_NUM_4,
+        .gpio_bck = GPIO_NUM_5,
         .default_function = SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER,
         .supported_functions = RS_CH_SUPPORTED_FUNC_BITS //
     };
 
+    status_led = supla_status_led_init(dev, &led_conf);
     rs_channel = supla_rs_channel_create(&rs_channel_conf);
     supla_channel_set_default_caption(rs_channel, "RS");
 
