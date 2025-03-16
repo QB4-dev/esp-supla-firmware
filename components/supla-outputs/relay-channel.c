@@ -33,7 +33,7 @@ static int supla_relay_channel_init(supla_channel_t *ch)
     esp_err_t                  rc;
 
     supla_log(LOG_INFO, "ch[%d] relay_ch init", ch_num);
-    rc = supla_esp_nvs_channel_config_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
+    rc = supla_esp_nvs_channel_state_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
     if (rc == ESP_OK) {
         supla_log(LOG_INFO, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_config.active_func);
         supla_channel_set_active_function(ch, data->nvs_config.active_func);
@@ -66,7 +66,7 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
 
             data->nvs_config.active_func = config->Func;
             data->nvs_config.power_switch = *switch_conf;
-            supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
+            supla_esp_nvs_channel_state_store(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
@@ -77,7 +77,7 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
 
             data->nvs_config.active_func = config->Func;
             data->nvs_config.staircase_timer = *staircase_conf;
-            supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
+            supla_esp_nvs_channel_state_store(ch, &data->nvs_config, sizeof(data->nvs_config));
         }
     } break;
     default:

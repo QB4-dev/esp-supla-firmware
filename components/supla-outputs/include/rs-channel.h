@@ -17,8 +17,8 @@
      SUPLA_BIT_FUNC_ROLLER_GARAGE_DOOR)
 
 struct rs_channel_config {
-    gpio_num_t   gpio_plus;
-    gpio_num_t   gpio_minus;
+    gpio_num_t   gpio_open;
+    gpio_num_t   gpio_close;
     unsigned int supported_functions; //SUPLA_BIT_FUNC_*
     int          default_function;    //SUPLA_CHANNELFNC_*
 };
@@ -31,6 +31,7 @@ int supla_rs_channel_move_down(supla_channel_t *ch);
 int supla_rs_channel_move_up(supla_channel_t *ch);
 int supla_rs_channel_move_down_or_stop(supla_channel_t *ch);
 int supla_rs_channel_move_up_or_stop(supla_channel_t *ch);
+int supla_rs_channel_step_by_step(supla_channel_t *ch);
 int supla_rs_channel_set_target_position(supla_channel_t *ch, int8_t target);
 
 #endif /* _SUPLA_RELAY_CHANNEL_H_ */
