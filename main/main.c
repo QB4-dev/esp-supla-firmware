@@ -81,8 +81,8 @@ static void dev_event_handler(void *event_handler_arg, esp_event_base_t event_ba
     switch (event_id) {
     case DEVICE_EVENT_CONFIG_INIT:
         board_on_config_mode_init();
-        wifi_set_access_point_mode(hostname);
         supla_dev_enter_config_mode(supla_dev);
+        wifi_set_access_point_mode(hostname);
         webserver_start(&supla_dev, bsp);
         break;
     case DEVICE_EVENT_CONFIG_EXIT: {
@@ -123,12 +123,12 @@ static esp_err_t supla_device_init(void)
 {
     supla_dev = supla_dev_create(bsp->id, NULL);
 
+    supla_esp_generate_hostname(supla_dev, hostname, sizeof(hostname));
     supla_dev_set_flags(supla_dev, SUPLA_DEVICE_FLAG_CALCFG_ENTER_CFG_MODE);
     supla_dev_set_state_changed_callback(supla_dev, supla_dev_state_change_callback);
     supla_dev_set_common_channel_state_callback(supla_dev, supla_esp_get_wifi_state);
     supla_dev_set_server_time_sync_callback(supla_dev, supla_esp_server_time_sync);
     supla_dev_set_server_req_restart_callback(supla_dev, supla_esp_restart_callback);
-    supla_esp_generate_hostname(supla_dev, hostname, sizeof(hostname));
 
     supla_esp_nvs_config_init(&supla_config);
     supla_dev_set_config(supla_dev, &supla_config);

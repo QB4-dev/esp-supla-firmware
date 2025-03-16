@@ -7,7 +7,7 @@
 #ifndef _SUPLA_BINARY_SENSOR_H_
 #define _SUPLA_BINARY_SENSOR_H_
 
-#include <libsupla/channel.h>
+#include <esp-supla.h>
 #include <driver/gpio.h>
 
 struct binary_sensor_config {

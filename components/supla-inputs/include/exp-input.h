@@ -7,7 +7,7 @@
 #ifndef _SUPLA_EXP_INPUT_H_
 #define _SUPLA_EXP_INPUT_H_
 
-#include <libsupla/channel.h>
+#include <esp-supla.h>
 #include <driver/gpio.h>
 #include <pca9557.h>
 

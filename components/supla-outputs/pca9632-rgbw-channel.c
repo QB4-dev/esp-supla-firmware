@@ -211,12 +211,12 @@ supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_chann
         return NULL;
     }
 
+    supla_channel_set_data(ch, ch_data);
     ch_data->mutex = xSemaphoreCreateMutex();
     ch_data->i2c_dev = config->pca9632;
     ch_data->output = config->pwm_output;
     timer_args.arg = ch;
 
-    supla_channel_set_data(ch, ch_data);
     pca9632_set_pwm(ch_data->i2c_dev, ch_data->output, 0x00);
     esp_timer_create(&timer_args, &ch_data->timer);
     esp_timer_start_periodic(ch_data->timer, 10000);
