@@ -80,8 +80,8 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     };
 
     struct rs_channel_config rs_channel_conf = {
-        .gpio_fwd = GPIO_NUM_4,
-        .gpio_bck = GPIO_NUM_5,
+        .gpio_plus = GPIO_NUM_4,
+        .gpio_minus = GPIO_NUM_5,
         .default_function = SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER,
         .supported_functions = RS_CH_SUPPORTED_FUNC_BITS //
     };

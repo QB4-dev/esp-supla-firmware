@@ -40,6 +40,7 @@ struct rs_nvs_config {
     int8_t stored_pos;
     union {
         TChannelConfig_RollerShutter rs;
+        TChannelConfig_FacadeBlind   blind;
     };
 };
 
@@ -76,49 +77,63 @@ static int supla_rs_channel_init(supla_channel_t *ch)
     return SUPLA_RESULTCODE_TRUE;
 }
 
-static int supla_rs_move_up(supla_channel_t *ch)
+static int supla_rs_channel_internal_stop(supla_channel_t *ch)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
 
-    CHANNEL_SEMAPHORE_TAKE(data->mutex);
-    data->state = RS_STATE_MOVING_UP;
-    data->target_pos = 0;
-    CHANNEL_SEMAPHORE_GIVE(data->mutex);
-    return ESP_OK;
-}
-
-static int supla_rs_move_down(supla_channel_t *ch)
-{
-    struct rs_channel_data *data = supla_channel_get_data(ch);
-
-    CHANNEL_SEMAPHORE_TAKE(data->mutex);
-    data->state = RS_STATE_MOVING_DOWN;
-    data->target_pos = 100;
-    CHANNEL_SEMAPHORE_GIVE(data->mutex);
-    return ESP_OK;
-}
-
-static int supla_rs_stop(supla_channel_t *ch)
-{
-    struct rs_channel_data *data = supla_channel_get_data(ch);
-
-    CHANNEL_SEMAPHORE_TAKE(data->mutex);
     data->state = RS_STATE_IDLE;
     data->target_pos = data->real_pos;
     gpio_set_level(data->gpio_minus, 0);
     gpio_set_level(data->gpio_plus, 0);
-    CHANNEL_SEMAPHORE_GIVE(data->mutex);
     return ESP_OK;
 }
 
-static int supla_rs_set_target_position(supla_channel_t *ch, int8_t target)
+static int supla_rs_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
-    struct rs_channel_data *data = supla_channel_get_data(ch);
+    char task = new_value->value[0];
+    char tilt = new_value->value[1];
 
-    CHANNEL_SEMAPHORE_TAKE(data->mutex);
-    data->target_pos = target;
-    CHANNEL_SEMAPHORE_GIVE(data->mutex);
-    return ESP_OK;
+    uint32_t open = ((new_value->DurationMS >> 0) & 0xFFFF) * 100;
+    uint32_t close = ((new_value->DurationMS >> 16) & 0xFFFF) * 100;
+
+    supla_log(LOG_INFO, "rs set task=%d tilt=%d open=%dms close=%dms", task, tilt, open, close);
+
+    switch (task) {
+    case 0: // STOP
+        supla_rs_channel_move_stop(ch);
+        break;
+    case 1: //MOVE DOWN
+        supla_rs_channel_move_down(ch);
+        break;
+    case 2: //MOVE UP
+        supla_rs_channel_move_up(ch);
+        break;
+    case 3: //DOWN_OR_STOP
+        supla_rs_channel_move_down_or_stop(ch);
+        break;
+    case 4: //UP_OR_STOP
+        supla_rs_channel_move_up_or_stop(ch);
+        break;
+
+    case 5: // STEP_BY_STEP
+        //        if (inMove()) {
+        //            stop();
+        //        } else if (lastDirectionWasOpen()) {
+        //            moveDown();
+        //        } else if (lastDirectionWasClose()) {
+        //            moveUp();
+        //        } else if (currentPosition < 50) {
+        //            moveDown();
+        //        } else {
+        //            moveUp();
+        //        }
+        break;
+    default:
+        if (task >= 10 && task <= 110)
+            supla_rs_channel_set_target_position(ch, task - 10);
+        break;
+    }
+    return SUPLA_RESULT_TRUE;
 }
 
 static int supla_rs_tick(supla_channel_t *ch)
@@ -154,10 +169,7 @@ static int supla_rs_tick(supla_channel_t *ch)
             gpio_set_level(data->gpio_minus, 1);
             gpio_set_level(data->gpio_plus, 0);
         } else {
-            data->state = RS_STATE_IDLE;
-            data->target_pos = data->real_pos;
-            gpio_set_level(data->gpio_minus, 0);
-            gpio_set_level(data->gpio_plus, 0);
+            supla_rs_channel_internal_stop(ch);
         }
         break;
     case RS_STATE_MOVING_DOWN:
@@ -167,10 +179,7 @@ static int supla_rs_tick(supla_channel_t *ch)
             gpio_set_level(data->gpio_minus, 0);
             gpio_set_level(data->gpio_plus, 1);
         } else {
-            data->state = RS_STATE_IDLE;
-            data->target_pos = data->real_pos;
-            gpio_set_level(data->gpio_minus, 0);
-            gpio_set_level(data->gpio_plus, 0);
+            supla_rs_channel_internal_stop(ch);
         }
         break;
     }
@@ -205,69 +214,6 @@ static void rs_timer_event(void *ch)
     supla_rs_tick(ch);
 }
 
-static int supla_rs_set(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
-{
-    char task = new_value->value[0];
-    char tilt = new_value->value[1];
-
-    uint32_t open = ((new_value->DurationMS >> 0) & 0xFFFF) * 100;
-    uint32_t close = ((new_value->DurationMS >> 16) & 0xFFFF) * 100;
-
-    supla_log(LOG_INFO, "rs set task=%d tilt=%d open=%dms close=%dms", task, tilt, open, close);
-
-    switch (task) {
-    case 0: { // STOP
-        supla_rs_stop(ch);
-        break;
-    }
-    case 1: { //MOVE DOWN
-        supla_rs_move_down(ch);
-        break;
-    }
-    case 2: { //MOVE UP
-        supla_rs_move_up(ch);
-        break;
-    }
-    case 3: { // down or stop
-              //        if (inMove()) {
-              //            stop();
-              //        } else {
-              //            moveDown();
-              //        }
-        break;
-    }
-    case 4: { // up or stop
-              //        if (inMove()) {
-              //            stop();
-              //        } else {
-              //            moveUp();
-              //        }
-        break;
-    }
-    case 5: { // sbs
-              //        if (inMove()) {
-              //            stop();
-              //        } else if (lastDirectionWasOpen()) {
-              //            moveDown();
-              //        } else if (lastDirectionWasClose()) {
-              //            moveUp();
-              //        } else if (currentPosition < 50) {
-              //            moveDown();
-              //        } else {
-              //            moveUp();
-              //        }
-        break;
-    }
-
-    default: {
-        if (task >= 10 && task <= 110)
-            supla_rs_set_target_position(ch, task - 10);
-        break;
-    }
-    }
-    return SUPLA_RESULT_TRUE;
-}
-
 static int supla_srv_rs_config(supla_channel_t *ch, TSD_ChannelConfig *config)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
@@ -279,11 +225,9 @@ static int supla_srv_rs_config(supla_channel_t *ch, TSD_ChannelConfig *config)
     switch (config->Func) {
     case SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER:
     case SUPLA_CHANNELFNC_CONTROLLINGTHEROOFWINDOW:
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEFACADEBLIND:
     case SUPLA_CHANNELFNC_TERRACE_AWNING:
     case SUPLA_CHANNELFNC_PROJECTOR_SCREEN:
     case SUPLA_CHANNELFNC_CURTAIN:
-    case SUPLA_CHANNELFNC_VERTICAL_BLIND:
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGARAGEDOOR: {
         if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
             TChannelConfig_RollerShutter *rs_conf = (TChannelConfig_RollerShutter *)config->Config;
@@ -293,6 +237,21 @@ static int supla_srv_rs_config(supla_channel_t *ch, TSD_ChannelConfig *config)
             CHANNEL_SEMAPHORE_TAKE(data->mutex);
             nvs_conf->active_func = config->Func;
             nvs_conf->rs = *rs_conf;
+            supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
+            CHANNEL_SEMAPHORE_GIVE(data->mutex);
+        }
+    } break;
+    case SUPLA_CHANNELFNC_CONTROLLINGTHEFACADEBLIND:
+    case SUPLA_CHANNELFNC_VERTICAL_BLIND: {
+        if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
+            TChannelConfig_FacadeBlind *blind_conf = (TChannelConfig_FacadeBlind *)config->Config;
+            supla_log(LOG_INFO, "facade blind config: opening %dms closing %dms tilting %dms",
+                      blind_conf->OpeningTimeMS, blind_conf->ClosingTimeMS,
+                      blind_conf->TiltingTimeMS);
+
+            CHANNEL_SEMAPHORE_TAKE(data->mutex);
+            nvs_conf->active_func = config->Func;
+            nvs_conf->blind = *blind_conf;
             supla_esp_nvs_channel_config_store(ch, &data->nvs_config, sizeof(data->nvs_config));
             CHANNEL_SEMAPHORE_GIVE(data->mutex);
         }
@@ -310,8 +269,7 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
         .supported_functions = config->supported_functions,
         .sync_values_onchange = true,
         .default_function = config->default_function,
-        .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
-        //		| SUPLA_CHANNEL_FLAG_RS_SBS_AND_STOP_ACTIONS |
+        .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_RS_SBS_AND_STOP_ACTIONS,
         //                 SUPLA_CHANNEL_FLAG_CALCFG_RECALIBRATE |
         //                 SUPLA_CHANNEL_FLAG_RUNTIME_CHANNEL_CONFIG_UPDATE,
         .on_channel_init = supla_rs_channel_init,
@@ -320,7 +278,7 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
     };
 
     const gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio_fwd) | (1 << config->gpio_bck),
+        .pin_bit_mask = (1 << config->gpio_plus) | (1 << config->gpio_minus),
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };
@@ -346,8 +304,8 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
     data->mutex = xSemaphoreCreateMutex();
     data->real_pos = 0;
     data->target_pos = data->real_pos;
-    data->gpio_minus = config->gpio_fwd;
-    data->gpio_plus = config->gpio_bck;
+    data->gpio_minus = config->gpio_plus;
+    data->gpio_plus = config->gpio_minus;
 
     gpio_config(&gpio_conf);
     gpio_set_level(data->gpio_minus, 0);
@@ -357,4 +315,84 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
     esp_timer_create(&timer_args, &data->timer);
     esp_timer_start_periodic(data->timer, RS_TIMER_INTERVAL * 1000);
     return ch;
+}
+
+int supla_rs_channel_delete(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+    esp_timer_delete(data->timer);
+    free(data);
+    return supla_channel_free(ch);
+}
+
+int supla_rs_channel_move_stop(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    supla_rs_channel_internal_stop(ch);
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
+}
+
+int supla_rs_channel_move_down(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    data->state = RS_STATE_MOVING_DOWN;
+    data->target_pos = 100;
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
+}
+
+int supla_rs_channel_move_up(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    data->state = RS_STATE_MOVING_UP;
+    data->target_pos = 0;
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
+}
+
+int supla_rs_channel_move_down_or_stop(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    if (data->state != RS_STATE_IDLE) {
+        supla_rs_channel_internal_stop(ch);
+    } else {
+        data->state = RS_STATE_MOVING_DOWN;
+        data->target_pos = 0;
+    }
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
+}
+
+int supla_rs_channel_move_up_or_stop(supla_channel_t *ch)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    if (data->state != RS_STATE_IDLE) {
+        supla_rs_channel_internal_stop(ch);
+    } else {
+        data->state = RS_STATE_MOVING_UP;
+        data->target_pos = 0;
+    }
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
+}
+
+int supla_rs_channel_set_target_position(supla_channel_t *ch, int8_t target)
+{
+    struct rs_channel_data *data = supla_channel_get_data(ch);
+
+    CHANNEL_SEMAPHORE_TAKE(data->mutex);
+    data->target_pos = target;
+    CHANNEL_SEMAPHORE_GIVE(data->mutex);
+    return ESP_OK;
 }
