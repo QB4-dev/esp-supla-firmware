@@ -103,7 +103,7 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     };
 
     gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << input_conf->gpio),
+        .pin_bit_mask = (1ULL << input_conf->gpio),
         .mode = GPIO_MODE_INPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };

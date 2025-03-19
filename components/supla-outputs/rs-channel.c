@@ -12,12 +12,12 @@
 #include <esp_log.h>
 #include <esp_timer.h>
 
-#define CHANNEL_SEMAPHORE_TAKE(mutex)                          \
-    do {                                                       \
-        if (!xSemaphoreTake(mutex,  pdMS_TO_TICKS(1000))) { \
-            ESP_LOGE(TAG, "can't take mutex");                 \
-            return ESP_ERR_TIMEOUT;                            \
-        }                                                      \
+#define CHANNEL_SEMAPHORE_TAKE(mutex)                      \
+    do {                                                   \
+        if (!xSemaphoreTake(mutex, pdMS_TO_TICKS(1000))) { \
+            ESP_LOGE(TAG, "can't take mutex");             \
+            return ESP_ERR_TIMEOUT;                        \
+        }                                                  \
     } while (0)
 
 #define CHANNEL_SEMAPHORE_GIVE(mutex)          \
@@ -461,7 +461,7 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
     };
 
     const gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio_open) | (1 << config->gpio_close),
+        .pin_bit_mask = (1ULL << config->gpio_open) | (1ULL << config->gpio_close),
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };

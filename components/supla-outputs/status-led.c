@@ -85,7 +85,7 @@ supla_status_led_t supla_status_led_init(supla_dev_t *dev, const struct status_l
     struct led_data *led;
 
     gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio),
+        .pin_bit_mask = (1ULL << config->gpio),
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };

@@ -85,7 +85,7 @@ supla_channel_t *supla_binary_sensor_create(const struct binary_sensor_config *c
     };
 
     gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio),
+        .pin_bit_mask = (1ULL << config->gpio),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .intr_type = GPIO_INTR_DISABLE //
