@@ -15,7 +15,7 @@
 
 #define CHANNEL_SEMAPHORE_TAKE(mutex)                                           \
     do {                                                                        \
-        if (!xSemaphoreTake(mutex, CHANNEL_MUTEX_TIMEOUT / portTICK_RATE_MS)) { \
+        if (!xSemaphoreTake(mutex, pdMS_TO_TICKS(CHANNEL_MUTEX_TIMEOUT))) { \
             ESP_LOGE(TAG, "can't take mutex");                                  \
             return ESP_ERR_TIMEOUT;                                             \
         }                                                                       \

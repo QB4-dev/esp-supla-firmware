@@ -184,7 +184,7 @@ esp_err_t settings_nvs_read(const settings_group_t *settings_pack)
                     nvs_get_i8(nvs, nvs_id, (int8_t *)&setting->boolean.val);
                 } break;
                 case SETTING_TYPE_NUM: {
-                    nvs_get_i32(nvs, nvs_id, &setting->num.val);
+                    nvs_get_i32(nvs, nvs_id, (int32_t *)&setting->num.val);
                 } break;
                 case SETTING_TYPE_ONEOF: {
                     nvs_get_i8(nvs, nvs_id, (int8_t *)&setting->oneof.val);

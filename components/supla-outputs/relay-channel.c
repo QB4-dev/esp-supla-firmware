@@ -11,19 +11,19 @@
 #include <esp-supla.h>
 #include <driver/gpio.h>
 
-struct relay_nvs_config {
+struct relay_nvs_state {
     int active_func;
     union {
-        TChannelConfig_PowerSwitch    power_switch;
-        TChannelConfig_StaircaseTimer staircase_timer;
+        TChannelConfig_PowerSwitch    pwr_switch_conf;
+        TChannelConfig_StaircaseTimer staircase_conf;
     };
 };
 
 struct relay_channel_data {
-    gpio_num_t              gpio;
-    esp_timer_handle_t      timer;
-    uint32_t                mseconds_left;
-    struct relay_nvs_config nvs_config;
+    gpio_num_t             gpio;
+    esp_timer_handle_t     timer;
+    uint32_t               mseconds_left;
+    struct relay_nvs_state nvs_state;
 };
 
 static int supla_relay_channel_init(supla_channel_t *ch)
@@ -33,10 +33,10 @@ static int supla_relay_channel_init(supla_channel_t *ch)
     esp_err_t                  rc;
 
     supla_log(LOG_INFO, "ch[%d] relay_ch init", ch_num);
-    rc = supla_esp_nvs_channel_state_restore(ch, &data->nvs_config, sizeof(data->nvs_config));
+    rc = supla_esp_nvs_channel_state_restore(ch, &data->nvs_state, sizeof(data->nvs_state));
     if (rc == ESP_OK) {
-        supla_log(LOG_INFO, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_config.active_func);
-        supla_channel_set_active_function(ch, data->nvs_config.active_func);
+        supla_log(LOG_INFO, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_state.active_func);
+        supla_channel_set_active_function(ch, data->nvs_state.active_func);
     }
     return SUPLA_RESULTCODE_TRUE;
 }
@@ -64,9 +64,9 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
             supla_log(LOG_INFO, "power switch config: oc-max %d oc-tresh %d",
                       switch_conf->OvercurrentMaxAllowed, switch_conf->OvercurrentThreshold);
 
-            data->nvs_config.active_func = config->Func;
-            data->nvs_config.power_switch = *switch_conf;
-            supla_esp_nvs_channel_state_store(ch, &data->nvs_config, sizeof(data->nvs_config));
+            data->nvs_state.active_func = config->Func;
+            data->nvs_state.pwr_switch_conf = *switch_conf;
+            supla_esp_nvs_channel_state_store(ch, &data->nvs_state, sizeof(data->nvs_state));
         }
     } break;
     case SUPLA_CHANNELFNC_STAIRCASETIMER: {
@@ -75,9 +75,9 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
                 (TChannelConfig_StaircaseTimer *)config->Config;
             supla_log(LOG_INFO, "staircase config: %dms", staircase_conf->TimeMS);
 
-            data->nvs_config.active_func = config->Func;
-            data->nvs_config.staircase_timer = *staircase_conf;
-            supla_esp_nvs_channel_state_store(ch, &data->nvs_config, sizeof(data->nvs_config));
+            data->nvs_state.active_func = config->Func;
+            data->nvs_state.staircase_conf = *staircase_conf;
+            supla_esp_nvs_channel_state_store(ch, &data->nvs_state, sizeof(data->nvs_state));
         }
     } break;
     default:
@@ -141,7 +141,7 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     };
 
     const gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio),
+        .pin_bit_mask = (1ULL << config->gpio),
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };
@@ -218,7 +218,7 @@ int supla_relay_channel_set_local(supla_channel_t *ch, TRelayChannel_Value *rela
 
     memcpy(&new_value.value, relay_value, sizeof(TRelayChannel_Value));
     if (active_function == SUPLA_CHANNELFNC_STAIRCASETIMER && relay_value->hi)
-        new_value.DurationMS = data->nvs_config.staircase_timer.TimeMS;
+        new_value.DurationMS = data->nvs_state.staircase_conf.TimeMS;
 
     return supla_relay_channel_set(ch, &new_value);
 }

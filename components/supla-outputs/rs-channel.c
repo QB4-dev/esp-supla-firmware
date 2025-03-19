@@ -12,12 +12,12 @@
 #include <esp_log.h>
 #include <esp_timer.h>
 
-#define CHANNEL_SEMAPHORE_TAKE(mutex)                          \
-    do {                                                       \
-        if (!xSemaphoreTake(mutex, 1000 / portTICK_RATE_MS)) { \
-            ESP_LOGE(TAG, "can't take mutex");                 \
-            return ESP_ERR_TIMEOUT;                            \
-        }                                                      \
+#define CHANNEL_SEMAPHORE_TAKE(mutex)                      \
+    do {                                                   \
+        if (!xSemaphoreTake(mutex, pdMS_TO_TICKS(1000))) { \
+            ESP_LOGE(TAG, "can't take mutex");             \
+            return ESP_ERR_TIMEOUT;                        \
+        }                                                  \
     } while (0)
 
 #define CHANNEL_SEMAPHORE_GIVE(mutex)          \
@@ -35,7 +35,7 @@
 static const char *TAG = "RS-CH";
 enum rs_state { RS_STATE_OPENING = -1, RS_STATE_IDLE = 0, RS_STATE_CLOSING = 1 };
 
-struct rs_nvs_config {
+struct rs_nvs_state {
     int    active_func;
     int8_t stored_pos;
     union {
@@ -45,18 +45,18 @@ struct rs_nvs_config {
 };
 
 struct rs_channel_data {
-    SemaphoreHandle_t    mutex;
-    gpio_num_t           gpio_open;
-    gpio_num_t           gpio_close;
-    enum rs_state        state;
-    enum rs_state        last_state;
-    bool                 calibration;
-    float                real_pos;   // 0 - closed; 100 - opened
-    int8_t               target_pos; // 0 - closed; 100 - opened
-    TickType_t           report_tick;
-    TickType_t           store_tick;
-    esp_timer_handle_t   timer;
-    struct rs_nvs_config nvs_state;
+    SemaphoreHandle_t   mutex;
+    gpio_num_t          gpio_open;
+    gpio_num_t          gpio_close;
+    enum rs_state       state;
+    enum rs_state       last_state;
+    bool                calibration;
+    float               real_pos;   // 0 - closed; 100 - opened
+    int8_t              target_pos; // 0 - closed; 100 - opened
+    TickType_t          report_tick;
+    TickType_t          store_tick;
+    esp_timer_handle_t  timer;
+    struct rs_nvs_state nvs_state;
 };
 
 static int supla_rs_channel_get_base_function(supla_channel_t *ch)
@@ -87,7 +87,7 @@ static int supla_rs_channel_get_base_function(supla_channel_t *ch)
 static int supla_rs_channel_get_opening_time(supla_channel_t *ch)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_config   *conf = &data->nvs_state;
+    struct rs_nvs_state    *conf = &data->nvs_state;
     const int               base_func = supla_rs_channel_get_base_function(ch);
 
     switch (base_func) {
@@ -103,7 +103,7 @@ static int supla_rs_channel_get_opening_time(supla_channel_t *ch)
 static int supla_rs_channel_get_closing_time(supla_channel_t *ch)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_config   *conf = &data->nvs_state;
+    struct rs_nvs_state    *conf = &data->nvs_state;
     const int               base_func = supla_rs_channel_get_base_function(ch);
 
     switch (base_func) {
@@ -119,7 +119,7 @@ static int supla_rs_channel_get_closing_time(supla_channel_t *ch)
 static int supla_rs_channel_get_tilting_time(supla_channel_t *ch)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_config   *conf = &data->nvs_state;
+    struct rs_nvs_state    *conf = &data->nvs_state;
     const int               base_func = supla_rs_channel_get_base_function(ch);
 
     switch (base_func) {
@@ -337,7 +337,7 @@ static void rs_timer_event(void *ch)
 static int supla_rs_config_to_srv(supla_channel_t *ch, TSDS_SetChannelConfig *config)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_config   *nvs_conf = &data->nvs_state;
+    struct rs_nvs_state    *nvs_conf = &data->nvs_state;
     int                     base_func;
 
     CHANNEL_SEMAPHORE_TAKE(data->mutex);
@@ -376,7 +376,7 @@ static int supla_rs_config_to_srv(supla_channel_t *ch, TSDS_SetChannelConfig *co
 static int supla_rs_config_from_srv(supla_channel_t *ch, TSD_ChannelConfig *config)
 {
     struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_config   *nvs = &data->nvs_state;
+    struct rs_nvs_state    *nvs = &data->nvs_state;
     int                     base_func;
     const int               ch_num = config->ChannelNumber;
 
@@ -461,7 +461,7 @@ supla_channel_t *supla_rs_channel_create(const struct rs_channel_config *config)
     };
 
     const gpio_config_t gpio_conf = {
-        .pin_bit_mask = (1 << config->gpio_open) | (1 << config->gpio_close),
+        .pin_bit_mask = (1ULL << config->gpio_open) | (1ULL << config->gpio_close),
         .mode = GPIO_MODE_OUTPUT,
         .intr_type = GPIO_INTR_DISABLE //
     };
