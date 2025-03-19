@@ -5,6 +5,7 @@
 
 #include <board.h>
 #include <button.h>
+#include <led_strip.h>
 #include <relay-channel.h>
 
 static const char *TAG = "BSP";
@@ -18,6 +19,7 @@ static bsp_t brd_esp32s3_relay_6ch = { .id = "ESP32-S3-RELAY-6CH",
 bsp_t *const bsp = &brd_esp32s3_relay_6ch;
 
 static supla_dev_t     *supla_dev;
+static led_strip_t      rgb_led = { .type = LED_STRIP_WS2812, .length = 1, .gpio = GPIO_NUM_38 };
 static supla_channel_t *relay_channels[6];
 
 static void button_cb(button_t *btn, button_state_t state)
@@ -43,7 +45,8 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 
 esp_err_t board_early_init(void)
 {
-    button_init(&btn);
+    ESP_ERROR_CHECK(button_init(&btn));
+    ESP_ERROR_CHECK(led_strip_init(&rgb_led));
     return ESP_OK;
 }
 
@@ -53,7 +56,6 @@ esp_err_t board_supla_init(supla_dev_t *dev)
                                        GPIO_NUM_42, GPIO_NUM_45, GPIO_NUM_46 };
 
     struct relay_channel_config relay_channel_conf = {
-        .gpio = GPIO_NUM_16,
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
         .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
@@ -71,10 +73,13 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 
 esp_err_t board_on_config_mode_init(void)
 {
+    const rgb_t color = { .r = 0x0f, .g = 0x0f, .b = 0x0f };
+    ESP_ERROR_CHECK(led_strip_fill(&rgb_led, 0, rgb_led.length, color));
     return ESP_OK;
 }
 
 esp_err_t board_on_config_mode_exit(void)
 {
+    ESP_ERROR_CHECK(led_strip_flush(&rgb_led));
     return ESP_OK;
 }
