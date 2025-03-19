@@ -1,5 +1,13 @@
 {
     "idf.adapterTargetName": "esp32",
-    "idf.port": "/dev/ttyUSB0",
-    "idf.flashType": "UART"
+    "idf.port": "/dev/ttyACM0",
+    "idf.flashType": "UART",
+    "idf.customExtraVars": {
+        "OPENOCD_SCRIPTS": "/opt/esp/IDF_TOOLS/tools/openocd-esp32/v0.12.0-esp32-20240821/openocd-esp32/share/openocd/scripts",
+        "ESP_ROM_ELF_DIR": "/opt/esp/IDF_TOOLS/tools/esp-rom-elfs/20240305/",
+        "IDF_TARGET": "esp32s3"
+    },
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ]
 }
