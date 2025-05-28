@@ -122,9 +122,11 @@ static void rgb_deferred_fade(void *ch)
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *config)
 {
     supla_channel_config_t supla_channel_config = {
-        .type = SUPLA_CHANNELTYPE_DIMMERANDRGBLED,
+        .type = config->rgb_only ? SUPLA_CHANNELTYPE_RGBLEDCONTROLLER :
+                                   SUPLA_CHANNELTYPE_DIMMERANDRGBLED,
         .supported_functions = 0xFFFF,
-        .default_function = SUPLA_CHANNELFNC_DIMMERANDRGBLIGHTING,
+        .default_function = config->rgb_only ? SUPLA_CHANNELFNC_RGBLIGHTING :
+                                               SUPLA_CHANNELFNC_DIMMERANDRGBLIGHTING,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_RGBW_COMMANDS_SUPPORTED,
         .on_set_value = pca9632_channel_set_value
     };

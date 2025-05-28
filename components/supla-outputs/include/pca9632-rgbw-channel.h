@@ -21,6 +21,7 @@ typedef enum {
 struct pca9632_rgbw_channel_config {
     i2c_dev_t     *pca9632;
     rgbw_mapping_t rgbw_map;
+    bool           rgb_only;
 };
 
 struct pca9632_dimmer_channel_config {
