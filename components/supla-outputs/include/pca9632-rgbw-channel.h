@@ -15,6 +15,7 @@ typedef enum {
     RGBW_MAP_GBRW = 1,
     RGBW_MAP_GRBW = 2,
     RGBW_MAP_GRWB = 3,
+    RGBW_MAP_BRGW = 4,
 } rgbw_mapping_t;
 
 struct pca9632_rgbw_channel_config {

@@ -13,12 +13,12 @@
 
 #define CHANNEL_MUTEX_TIMEOUT 1000 //ms
 
-#define CHANNEL_SEMAPHORE_TAKE(mutex)                                           \
-    do {                                                                        \
+#define CHANNEL_SEMAPHORE_TAKE(mutex)                                       \
+    do {                                                                    \
         if (!xSemaphoreTake(mutex, pdMS_TO_TICKS(CHANNEL_MUTEX_TIMEOUT))) { \
-            ESP_LOGE(TAG, "can't take mutex");                                  \
-            return ESP_ERR_TIMEOUT;                                             \
-        }                                                                       \
+            ESP_LOGE(TAG, "can't take mutex");                              \
+            return ESP_ERR_TIMEOUT;                                         \
+        }                                                                   \
     } while (0)
 
 #define CHANNEL_SEMAPHORE_GIVE(mutex)          \
@@ -106,6 +106,8 @@ static esp_err_t pca9632_set_rgbw_value(struct channel_data *ch_data)
         return pca9632_set_pwm_all(pca9632, g, r, b, w);
     case RGBW_MAP_GRWB:
         return pca9632_set_pwm_all(pca9632, g, r, w, b);
+    case RGBW_MAP_BRGW:
+        return pca9632_set_pwm_all(pca9632, b, r, g, w);
     default:
         return ESP_ERR_INVALID_STATE;
     }

@@ -29,11 +29,8 @@ static const char *mode_labels[] = {
 };
 
 static const char *map_labels[] = {
-    [RGBW_MAP_RGBW] = "RGBW",
-    [RGBW_MAP_GBRW] = "GBRW",
-    [RGBW_MAP_GRBW] = "GRBW",
-    [RGBW_MAP_GRWB] = "GRWB",
-    NULL //last
+    [RGBW_MAP_RGBW] = "RGBW", [RGBW_MAP_GBRW] = "GBRW", [RGBW_MAP_GRBW] = "GRBW",
+    [RGBW_MAP_GRWB] = "GRWB", [RGBW_MAP_BRGW] = "BRGW", NULL //last
 };
 
 static setting_t mode_settings[] = {
