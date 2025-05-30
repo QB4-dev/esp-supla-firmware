@@ -29,11 +29,8 @@ static const char *mode_labels[] = {
 };
 
 static const char *map_labels[] = {
-    [RGBW_MAP_RGBW] = "RGBW",
-    [RGBW_MAP_GBRW] = "GBRW",
-    [RGBW_MAP_GRBW] = "GRBW",
-    [RGBW_MAP_GRWB] = "GRWB",
-    NULL //last
+    [RGBW_MAP_RGBW] = "RGBW", [RGBW_MAP_GBRW] = "GBRW", [RGBW_MAP_GRBW] = "GRBW",
+    [RGBW_MAP_GRWB] = "GRWB", [RGBW_MAP_BRGW] = "BRGW", NULL //last
 };
 
 static setting_t mode_settings[] = {
@@ -49,6 +46,10 @@ static setting_t color_settings[] = {
       .label = "COLOR MAP",
       .type = SETTING_TYPE_ONEOF,
       .oneof = { RGBW_MAP_GBRW, RGBW_MAP_GBRW, map_labels } },
+    { .id = "RGB_ONLY",
+      .label = "RGB ONLY",
+      .type = SETTING_TYPE_BOOL,
+      .boolean = { false, false } },
     { .id = "COLOR",
       .label = "MANUAL COLOR",
       .type = SETTING_TYPE_COLOR,
@@ -173,6 +174,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 {
     setting_t *output_mode = settings_pack_find(bsp->settings_pack, MODE_SETTINGS_GR, "OUT");
     setting_t *rgbw_map = settings_pack_find(bsp->settings_pack, COLOR_SETTINGS_GR, "RGBW_MAP");
+    setting_t *rgb_only = settings_pack_find(bsp->settings_pack, COLOR_SETTINGS_GR, "RGB_ONLY");
 
     if (!output_mode) {
         ESP_LOGE(TAG, "output_mode setting not found");
@@ -182,8 +184,9 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     switch (output_mode->oneof.val) {
     case OUT_MODE_COLOR: {
         struct pca9632_rgbw_channel_config rgbw_channel_conf = {
-            .pca9632 = &pca9632,                                       //set chip
-            .rgbw_map = rgbw_map ? rgbw_map->oneof.val : RGBW_MAP_GBRW //set default pwm order
+            .pca9632 = &pca9632,                                        //set chip
+            .rgbw_map = rgbw_map ? rgbw_map->oneof.val : RGBW_MAP_GBRW, //set default pwm order
+            .rgb_only = rgb_only ? rgb_only->boolean.val : false        //use white channel
         };
 
         rgbw_channel = pca9632_rgbw_channel_create(&rgbw_channel_conf);

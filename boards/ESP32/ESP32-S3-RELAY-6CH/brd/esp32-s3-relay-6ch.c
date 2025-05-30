@@ -19,7 +19,10 @@ static bsp_t brd_esp32s3_relay_6ch = { .id = "ESP32-S3-RELAY-6CH",
 bsp_t *const bsp = &brd_esp32s3_relay_6ch;
 
 static supla_dev_t     *supla_dev;
-static led_strip_t      rgb_led = { .type = LED_STRIP_WS2812, .length = 1, .gpio = GPIO_NUM_38 };
+static led_strip_t      rgb_led = { .type = LED_STRIP_WS2812,
+                                    .length = 1,
+                                    .gpio = GPIO_NUM_38,
+                                    .brightness = 255 };
 static supla_channel_t *relay_channels[6];
 
 static void button_cb(button_t *btn, button_state_t state)
@@ -45,6 +48,7 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 
 esp_err_t board_early_init(void)
 {
+    led_strip_install();
     ESP_ERROR_CHECK(button_init(&btn));
     ESP_ERROR_CHECK(led_strip_init(&rgb_led));
     return ESP_OK;

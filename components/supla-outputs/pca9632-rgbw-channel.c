@@ -13,12 +13,12 @@
 
 #define CHANNEL_MUTEX_TIMEOUT 1000 //ms
 
-#define CHANNEL_SEMAPHORE_TAKE(mutex)                                           \
-    do {                                                                        \
+#define CHANNEL_SEMAPHORE_TAKE(mutex)                                       \
+    do {                                                                    \
         if (!xSemaphoreTake(mutex, pdMS_TO_TICKS(CHANNEL_MUTEX_TIMEOUT))) { \
-            ESP_LOGE(TAG, "can't take mutex");                                  \
-            return ESP_ERR_TIMEOUT;                                             \
-        }                                                                       \
+            ESP_LOGE(TAG, "can't take mutex");                              \
+            return ESP_ERR_TIMEOUT;                                         \
+        }                                                                   \
     } while (0)
 
 #define CHANNEL_SEMAPHORE_GIVE(mutex)          \
@@ -106,6 +106,8 @@ static esp_err_t pca9632_set_rgbw_value(struct channel_data *ch_data)
         return pca9632_set_pwm_all(pca9632, g, r, b, w);
     case RGBW_MAP_GRWB:
         return pca9632_set_pwm_all(pca9632, g, r, w, b);
+    case RGBW_MAP_BRGW:
+        return pca9632_set_pwm_all(pca9632, b, r, g, w);
     default:
         return ESP_ERR_INVALID_STATE;
     }
@@ -120,9 +122,11 @@ static void rgb_deferred_fade(void *ch)
 supla_channel_t *pca9632_rgbw_channel_create(const struct pca9632_rgbw_channel_config *config)
 {
     supla_channel_config_t supla_channel_config = {
-        .type = SUPLA_CHANNELTYPE_DIMMERANDRGBLED,
+        .type = config->rgb_only ? SUPLA_CHANNELTYPE_RGBLEDCONTROLLER :
+                                   SUPLA_CHANNELTYPE_DIMMERANDRGBLED,
         .supported_functions = 0xFFFF,
-        .default_function = SUPLA_CHANNELFNC_DIMMERANDRGBLIGHTING,
+        .default_function = config->rgb_only ? SUPLA_CHANNELFNC_RGBLIGHTING :
+                                               SUPLA_CHANNELFNC_DIMMERANDRGBLIGHTING,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_RGBW_COMMANDS_SUPPORTED,
         .on_set_value = pca9632_channel_set_value
     };

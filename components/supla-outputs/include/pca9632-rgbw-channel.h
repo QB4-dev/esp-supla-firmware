@@ -15,11 +15,13 @@ typedef enum {
     RGBW_MAP_GBRW = 1,
     RGBW_MAP_GRBW = 2,
     RGBW_MAP_GRWB = 3,
+    RGBW_MAP_BRGW = 4,
 } rgbw_mapping_t;
 
 struct pca9632_rgbw_channel_config {
     i2c_dev_t     *pca9632;
     rgbw_mapping_t rgbw_map;
+    bool           rgb_only;
 };
 
 struct pca9632_dimmer_channel_config {
