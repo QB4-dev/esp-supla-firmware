@@ -116,21 +116,21 @@ static int supla_rs_channel_get_closing_time(supla_channel_t *ch)
     }
 }
 
-static int supla_rs_channel_get_tilting_time(supla_channel_t *ch)
-{
-    struct rs_channel_data *data = supla_channel_get_data(ch);
-    struct rs_nvs_state    *conf = &data->nvs_state;
-    const int               base_func = supla_rs_channel_get_base_function(ch);
-
-    switch (base_func) {
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER:
-        return 0;
-    case SUPLA_CHANNELFNC_CONTROLLINGTHEFACADEBLIND:
-        return conf->blinds_conf.TiltingTimeMS;
-    default:
-        return 0;
-    }
-}
+//static int supla_rs_channel_get_tilting_time(supla_channel_t *ch)
+//{
+//    struct rs_channel_data *data = supla_channel_get_data(ch);
+//    struct rs_nvs_state    *conf = &data->nvs_state;
+//    const int               base_func = supla_rs_channel_get_base_function(ch);
+//
+//    switch (base_func) {
+//    case SUPLA_CHANNELFNC_CONTROLLINGTHEROLLERSHUTTER:
+//        return 0;
+//    case SUPLA_CHANNELFNC_CONTROLLINGTHEFACADEBLIND:
+//        return conf->blinds_conf.TiltingTimeMS;
+//    default:
+//        return 0;
+//    }
+//}
 
 static int supla_rs_channel_init(supla_channel_t *ch)
 {
