@@ -25,6 +25,7 @@ struct mp46_rs_channel_config {
 supla_channel_t *supla_mp46_rs_channel_create(const struct mp46_rs_channel_config *config);
 int              supla_mp46_rs_channel_delete(supla_channel_t *ch);
 
+int supla_mp46_rs_channel_set_wifi_status(supla_channel_t *ch, uint8_t status);
 int supla_mp46_rs_channel_manual_ctrl(supla_channel_t *ch, mp46_rs_manual_cmd_t cmd);
 int supla_mp46_rs_channel_set_target_position(supla_channel_t *ch, int8_t target);
 

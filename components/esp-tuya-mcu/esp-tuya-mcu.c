@@ -32,12 +32,13 @@ static const char *TAG = "tuya_mcu";
  *
  */
 typedef struct {
-    uart_port_t             uart_port;      /*!< Uart port number */
-    tuya_mcu_t              dev;            /*!< TUYA MCU dev handle */
-    TaskHandle_t            tsk_hdl;        /*!< task handle */
-    esp_event_loop_handle_t event_loop_hdl; /*!< Event loop handle */
-    QueueHandle_t           event_queue;    /*!< UART event queue handle */
-    QueueHandle_t           dp_queue;       /*!< DP send queue handle */
+    uart_port_t             uart_port;         /*!< Uart port number */
+    tuya_mcu_t              dev;               /*!< TUYA MCU dev handle */
+    TaskHandle_t            tsk_hdl;           /*!< task handle */
+    esp_event_loop_handle_t event_loop_hdl;    /*!< Event loop handle */
+    QueueHandle_t           event_queue;       /*!< UART event queue handle */
+    QueueHandle_t           wifi_status_queue; /*!< WiFi send queue handle */
+    QueueHandle_t           dp_queue;          /*!< DP send queue handle */
 } esp_tuya_mcu_t;
 
 /* Platform functions */
@@ -63,6 +64,7 @@ static void esp_tuya_mcu_task_entry(void *arg)
     esp_tuya_mcu_t *mcu = (esp_tuya_mcu_t *)arg;
     uart_event_t    event;
     tuya_dp_t       dp;
+    uint8_t         wifi_state;
 
     ESP_LOGI(TAG, "task started on UART%d", mcu->uart_port);
     while (1) {
@@ -97,6 +99,11 @@ static void esp_tuya_mcu_task_entry(void *arg)
                 ESP_LOGW(TAG, "unknown uart event type: %d", event.type);
                 break;
             }
+        }
+
+        if (xQueueReceive(mcu->wifi_status_queue, &wifi_state, pdMS_TO_TICKS(200))) {
+            tuya_mcu_send_wifi_status(mcu->dev, wifi_state);
+            ESP_LOGI(TAG, "WiFi status %d sent", wifi_state);
         }
 
         if (xQueueReceive(mcu->dp_queue, &dp, pdMS_TO_TICKS(200))) {
@@ -159,6 +166,12 @@ esp_tuya_mcu_handle_t esp_tuya_mcu_init(const tuya_mcu_uart_config_t *config)
     if (!mcu) {
         ESP_LOGE(TAG, "calloc failed");
         goto err_malloc;
+    }
+
+    mcu->wifi_status_queue = xQueueCreate(4, sizeof(uint8_t));
+    if (!mcu->wifi_status_queue) {
+        ESP_LOGE(TAG, "create WiFi status queue failed");
+        goto err_wifi_state_queue;
     }
 
     mcu->dp_queue = xQueueCreate(8, sizeof(tuya_dp_t));
@@ -235,6 +248,8 @@ err_uart_install:
 err_uart_config:
     vQueueDelete(mcu->dp_queue);
 err_dp_queue:
+    vQueueDelete(mcu->wifi_status_queue);
+err_wifi_state_queue:
 err_malloc:
     free(mcu);
     return NULL;
@@ -248,6 +263,7 @@ esp_err_t esp_tuya_mcu_deinit(esp_tuya_mcu_handle_t mcu_hdl)
     tuya_mcu_deinit(mcu->dev);
     esp_err_t err = uart_driver_delete(mcu->uart_port);
     vQueueDelete(mcu->dp_queue);
+    vQueueDelete(mcu->wifi_status_queue);
     free(mcu);
     return err;
 }
@@ -267,7 +283,20 @@ esp_err_t esp_tuya_mcu_remove_handler(esp_tuya_mcu_handle_t mcu_hdl, esp_event_h
                                              handler);
 }
 
-esp_err_t esp_tuya_mcu_push_dp(esp_tuya_mcu_handle_t mcu_hdl, tuya_dp_t *dp)
+esp_err_t esp_tuya_mcu_write_wifi_status(esp_tuya_mcu_handle_t mcu_hdl, uint8_t status)
+{
+    esp_tuya_mcu_t *mcu = (esp_tuya_mcu_t *)mcu_hdl;
+    if (!mcu) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (xQueueSend(mcu->wifi_status_queue, &status, pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGE(TAG, "send WiFi status to queue failed");
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
+esp_err_t esp_tuya_mcu_write_dp(esp_tuya_mcu_handle_t mcu_hdl, tuya_dp_t *dp)
 {
     esp_tuya_mcu_t *mcu = (esp_tuya_mcu_t *)mcu_hdl;
     if (!mcu || !dp) {

@@ -115,7 +115,6 @@ static uint8_t get_check_sum(uint8_t *pack, size_t pack_len)
     return check_sum;
 }
 
-// Helper to print buffer as hex
 void print_hex(const unsigned char *buf, int len)
 {
     for (int i = 0; i < len; ++i)
@@ -240,6 +239,8 @@ static int tuya_frame_send(tuya_mcu_t mcu, uint8_t version, uint8_t cmd, const u
     memcpy(mcu->tx_buf + 6, data, len);
     mcu->tx_buf[6 + len] = get_check_sum(mcu->tx_buf, 6 + len); // Checksum
 
+    printf("TUYA frame tx: ");
+    print_hex(mcu->tx_buf, PROTOCOL_HEAD + len);
     // Send the frame
     for (size_t i = 0; i < PROTOCOL_HEAD + len; ++i) {
         if (tuya_mcu_uart_tx(mcu->uart_context, mcu->tx_buf[i]) < 0) {
@@ -268,6 +269,12 @@ static int tuya_frame_send_wifi_mode_ack(tuya_mcu_t mcu)
     return tuya_frame_send(mcu, MCU_TX_VER, WIFI_MODE_CMD, NULL, 0);
 }
 
+int tuya_mcu_send_wifi_status(tuya_mcu_t mcu, uint8_t state)
+{
+    // Send wifi state info frame
+    return tuya_frame_send(mcu, MCU_TX_VER, WIFI_STATE_CMD, &state, 1);
+}
+
 static int tuya_mcu_send_state_request(tuya_mcu_t mcu)
 {
     // Send state query frame
@@ -276,9 +283,10 @@ static int tuya_mcu_send_state_request(tuya_mcu_t mcu)
 
 int tuya_mcu_send_dp(tuya_mcu_t mcu, tuya_dp_t *dp)
 {
+    uint8_t buf[128];
     // Send data query frame
-    size_t len = tuya_dp_get_len(dp);
-    return tuya_frame_send(mcu, MCU_TX_VER, DATA_QUERT_CMD, (const uint8_t *)dp, len);
+    tuya_dp_serialize(dp, buf, sizeof(buf));
+    return tuya_frame_send(mcu, MCU_TX_VER, DATA_QUERT_CMD, buf, tuya_dp_get_len(dp));
 }
 
 static int tuya_frame_handle(tuya_mcu_t mcu, uint8_t ver, uint8_t cmd, uint8_t *data, size_t len)
@@ -364,6 +372,9 @@ static int tuya_frame_receive(tuya_mcu_t mcu)
                 unsigned char  version = mcu->rx_buf[2];
                 unsigned char  cmd = mcu->rx_buf[3];
                 unsigned char *data = mcu->rx_buf + 6;
+
+                printf("TUYA frame rx: ");
+                print_hex(mcu->rx_buf, PROTOCOL_HEAD + len);
                 tuya_frame_handle(mcu, version, cmd, data, len);
             } else {
                 return -1; // Checksum error

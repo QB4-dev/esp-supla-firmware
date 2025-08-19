@@ -87,6 +87,53 @@ uint16_t tuya_dp_get_len(const tuya_dp_t *dp)
     }
 }
 
+int tuya_dp_serialize(const tuya_dp_t *dp, uint8_t *out_buf, size_t out_len)
+{
+    if (!dp || !out_buf)
+        return -1;
+
+    uint16_t payload_len = 0;
+
+    switch (dp->type) {
+    case DP_TYPE_BOOL:
+        payload_len = 1;
+        break;
+    case DP_TYPE_VALUE:
+        payload_len = 4;
+        break;
+    case DP_TYPE_STRING:
+        payload_len = strlen(dp->data.str);
+        break;
+    case DP_TYPE_ENUM:
+        payload_len = 1;
+        break;
+    case DP_TYPE_RAW:
+        payload_len = dp->len;
+        break;
+    case DP_TYPE_BITMAP:
+        payload_len = dp->len;
+        break;
+    default:
+        payload_len = dp->len;
+        break;
+    }
+
+    size_t total_len = 4 + payload_len;
+    if (out_len < total_len)
+        return -1;
+
+    // Header
+    out_buf[0] = dp->id;
+    out_buf[1] = dp->type;
+    out_buf[2] = (payload_len >> 8) & 0xFF; // LEN_H (big-endian)
+    out_buf[3] = payload_len & 0xFF;        // LEN_L
+
+    // Value
+    memcpy(&out_buf[4], dp->data.raw, payload_len);
+
+    return (int)total_len;
+}
+
 int parse_tuya_dp(const uint8_t *buf, size_t buf_len, tuya_dp_t *dp)
 {
     if (!buf || !dp || buf_len < 4) {

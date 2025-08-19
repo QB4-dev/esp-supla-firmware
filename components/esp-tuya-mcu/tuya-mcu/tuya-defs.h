@@ -50,7 +50,7 @@
 #endif
 
 #define MCU_RX_VER 0x00    //Module send frame protocol version number
-#define MCU_TX_VER 0x03    //MCU send frame protocol version number(default)
+#define MCU_TX_VER 0x00    //MCU send frame protocol version number(default)
 #define PROTOCOL_HEAD 0x07 //Fixed protocol header length
 #define FRAME_FIRST 0x55   //Frame header first byte
 #define FRAME_SECOND 0xaa  //Frame header second byte

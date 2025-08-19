@@ -45,15 +45,17 @@ struct mp46_rs_channel_data {
 static void mcu_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                               int32_t event_id, void *event_data)
 {
-    supla_channel_t *ch = event_handler_arg;
-    supla_dev_t     *dev = supla_channel_get_assigned_device(ch);
+    supla_channel_t             *ch = event_handler_arg;
+    supla_dev_t                 *dev = supla_channel_get_assigned_device(ch);
+    struct mp46_rs_channel_data *data = supla_channel_get_data(ch);
 
     switch (event_id) {
     case TUYA_MCU_EVENT_STATE_CHANGED:
         ESP_LOGI(TAG, "TUYA MCU state changed");
         break;
     case TUYA_MCU_EVENT_CONFIG_REQUEST:
-        ESP_LOGI(TAG, "TUYA MCU config request");
+        ESP_LOGI(TAG, "TUYA MCU config requested");
+        esp_tuya_mcu_write_wifi_status(data->tuya_mcu, WIFI_NOT_CONNECTED);
         supla_dev_enter_config_mode(dev);
         break;
     case TUYA_MCU_EVENT_DP_UPDATE: {
@@ -145,13 +147,19 @@ int supla_mp46_rs_channel_delete(supla_channel_t *ch)
     return supla_channel_free(ch);
 }
 
+int supla_mp46_rs_channel_set_wifi_status(supla_channel_t *ch, uint8_t status)
+{
+    struct mp46_rs_channel_data *data = supla_channel_get_data(ch);
+    return esp_tuya_mcu_write_wifi_status(data->tuya_mcu, status);
+}
+
 int supla_mp46_rs_channel_manual_ctrl(supla_channel_t *ch, mp46_rs_manual_cmd_t cmd)
 {
     struct mp46_rs_channel_data *data = supla_channel_get_data(ch);
     tuya_dp_t                    dp;
 
     tuya_dp_set_enum(&dp, DP_MP46_MANUAL_CTRL, cmd);
-    return esp_tuya_mcu_push_dp(data->tuya_mcu, &dp);
+    return esp_tuya_mcu_write_dp(data->tuya_mcu, &dp);
 }
 
 int supla_mp46_rs_channel_set_target_position(supla_channel_t *ch, int8_t target)
@@ -160,7 +168,7 @@ int supla_mp46_rs_channel_set_target_position(supla_channel_t *ch, int8_t target
     tuya_dp_t                    dp;
 
     tuya_dp_set_value(&dp, DP_MP46_PERCENT_CTRL, target);
-    return esp_tuya_mcu_push_dp(data->tuya_mcu, &dp);
+    return esp_tuya_mcu_write_dp(data->tuya_mcu, &dp);
 }
 
 int supla_mp46_rs_channel_set_direction(supla_channel_t *ch, bool inverted)
@@ -168,8 +176,8 @@ int supla_mp46_rs_channel_set_direction(supla_channel_t *ch, bool inverted)
     struct mp46_rs_channel_data *data = supla_channel_get_data(ch);
     tuya_dp_t                    dp;
 
-    tuya_dp_set_bool(&dp, DP_MP46_MOTOR_DIRECTION, inverted);
-    return esp_tuya_mcu_push_dp(data->tuya_mcu, &dp);
+    tuya_dp_set_enum(&dp, DP_MP46_MOTOR_DIRECTION, inverted ? 0 : 1);
+    return esp_tuya_mcu_write_dp(data->tuya_mcu, &dp);
 }
 
 int supla_mp46_rs_channel_set_pull_to_start(supla_channel_t *ch, bool enabled)
@@ -178,5 +186,5 @@ int supla_mp46_rs_channel_set_pull_to_start(supla_channel_t *ch, bool enabled)
     tuya_dp_t                    dp;
 
     tuya_dp_set_bool(&dp, DP_MP46_PULL_TO_START, enabled);
-    return esp_tuya_mcu_push_dp(data->tuya_mcu, &dp);
+    return esp_tuya_mcu_write_dp(data->tuya_mcu, &dp);
 }

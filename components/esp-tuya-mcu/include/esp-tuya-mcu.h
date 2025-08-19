@@ -87,7 +87,8 @@ esp_err_t esp_tuya_mcu_deinit(esp_tuya_mcu_handle_t mcu_hdl);
  * @param arg Argument to pass to the handler
  * @return esp_err_t ESP_OK on success, ESP_FAIL on error
  */
-esp_err_t esp_tuya_mcu_add_handler(esp_tuya_mcu_handle_t mcu_hdl, esp_event_handler_t handler, void *arg);
+esp_err_t esp_tuya_mcu_add_handler(esp_tuya_mcu_handle_t mcu_hdl, esp_event_handler_t handler,
+                                   void *arg);
 
 /**
  * @brief Remove event handler for TUYA MCU
@@ -99,13 +100,22 @@ esp_err_t esp_tuya_mcu_add_handler(esp_tuya_mcu_handle_t mcu_hdl, esp_event_hand
 esp_err_t esp_tuya_mcu_remove_handler(esp_tuya_mcu_handle_t mcu_hdl, esp_event_handler_t handler);
 
 /**
+ * @brief Send WiFi state to TUYA MCU
+ *
+ * @param mcu_hdl handle of TUYA MCU
+ * @param state WiFi state from WIFI work status in TUYA protocol
+ * @return esp_err_t ESP_OK on success, ESP_FAIL on error
+ */
+esp_err_t esp_tuya_mcu_write_wifi_status(esp_tuya_mcu_handle_t mcu_hdl, uint8_t state);
+
+/**
  * @brief Send data point to TUYA MCU
  *
  * @param mcu_hdl handle of TUYA MCU
  * @param dp Data point to send
  * @return esp_err_t ESP_OK on success, ESP_FAIL on error
  */
-esp_err_t esp_tuya_mcu_push_dp(esp_tuya_mcu_handle_t mcu_hdl, tuya_dp_t *dp);
+esp_err_t esp_tuya_mcu_write_dp(esp_tuya_mcu_handle_t mcu_hdl, tuya_dp_t *dp);
 
 #ifdef __cplusplus
 }

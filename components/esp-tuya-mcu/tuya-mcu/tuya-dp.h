@@ -26,6 +26,7 @@ void     tuya_dp_set_string(tuya_dp_t *dp, uint8_t id, const char *str);
 void     tuya_dp_set_enum(tuya_dp_t *dp, uint8_t id, uint8_t value);
 void     tuya_dp_set_bitmap(tuya_dp_t *dp, uint8_t id, const uint8_t *bits, uint16_t len);
 uint16_t tuya_dp_get_len(const tuya_dp_t *dp);
+int      tuya_dp_serialize(const tuya_dp_t *dp, uint8_t *out_buf, size_t out_len);
 
 int parse_tuya_dp(const uint8_t *data, size_t len, tuya_dp_t *dp);
 int tuya_dp_print(tuya_dp_t *dp);

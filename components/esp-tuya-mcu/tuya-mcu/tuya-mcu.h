@@ -29,5 +29,6 @@ int tuya_mcu_set_state_handler(tuya_mcu_t mcu, tuya_mcu_state_handler_t handler,
 int tuya_mcu_set_config_handler(tuya_mcu_t mcu, tuya_mcu_config_handler_t handler, void *arg);
 int tuya_mcu_set_dp_handler(tuya_mcu_t mcu, tuya_mcu_dp_handler_t handler, void *arg);
 
+int tuya_mcu_send_wifi_status(tuya_mcu_t mcu, uint8_t state);
 int tuya_mcu_send_dp(tuya_mcu_t mcu, tuya_dp_t *dp);
 int tuya_mcu_tick(tuya_mcu_t mcu);
