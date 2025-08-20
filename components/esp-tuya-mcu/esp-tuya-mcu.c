@@ -1,7 +1,7 @@
 /*
- * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
+ * Copyright (c) 2025 <qb4.dev@gmail.com>
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
 #include "include/esp-tuya-mcu.h"
