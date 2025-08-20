@@ -65,7 +65,7 @@ static void mcu_event_handler(void *event_handler_arg, esp_event_base_t event_ba
         switch (dp->id) {
         case DP_MP46_CURRENT_POSITION: {
             TDSC_RollerShutterValue rs_val = {};
-            rs_val.position = dp->data.value;
+            rs_val.position = 100 - dp->data.value;
             supla_channel_set_roller_shutter_value(ch, &rs_val);
         } break;
         case DP_MP46_MOTOR_DIRECTION: {
@@ -167,7 +167,7 @@ int supla_mp46_rs_channel_set_target_position(supla_channel_t *ch, int8_t target
     struct mp46_rs_channel_data *data = supla_channel_get_data(ch);
     tuya_dp_t                    dp;
 
-    tuya_dp_set_value(&dp, DP_MP46_PERCENT_CTRL, target);
+    tuya_dp_set_value(&dp, DP_MP46_PERCENT_CTRL, 100 - target);
     return esp_tuya_mcu_write_dp(data->tuya_mcu, &dp);
 }
 

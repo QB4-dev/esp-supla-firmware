@@ -211,7 +211,6 @@ int tuya_dp_print(tuya_dp_t *dp)
         tstr = type_str[dp->type];
 
     printf("DP id: %d, type: %s[%d], len: %d ", dp->id, tstr, dp->type, dp->len);
-
     switch (dp->type) {
     case DP_TYPE_RAW:
         printf("Raw Data: ");

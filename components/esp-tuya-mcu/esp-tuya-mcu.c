@@ -129,10 +129,11 @@ static int on_state_changed(tuya_mcu_t dev, enum tuya_mcu_state st, void *arg)
     case TUYA_MCU_QUERY_INFO:
         ESP_LOGI(TAG, "dev info queried");
         break;
-    case TUYA_MCU_INITIALIZED:
-        ESP_LOGI(TAG, "device initialized: ID=%s, ver=%s\n", tuya_mcu_get_product_id(dev),
-                 tuya_mcu_get_version(dev));
-        break;
+    case TUYA_MCU_INITIALIZED: {
+        const char *pid = tuya_mcu_get_product_id(dev);
+        const char *ver = tuya_mcu_get_version(dev);
+        ESP_LOGI(TAG, "device initialized: ID=%s, ver=%s", pid, ver);
+    } break;
     default:
         ESP_LOGE(TAG, "unknown state: %d\n", st);
         break;

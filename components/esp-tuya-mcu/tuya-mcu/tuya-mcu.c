@@ -10,8 +10,8 @@
 #define PID_LEN 16 // Product ID length
 #define VER_LEN 5  // Version length
 
-#define RX_BUF_SIZE 1024
-#define TX_BUF_SIZE 1024
+#define RX_BUF_SIZE 256
+#define TX_BUF_SIZE 256
 
 struct tuya_mcu {
     char                product_id[PID_LEN + 1]; // Product ID
@@ -239,8 +239,8 @@ static int tuya_frame_send(tuya_mcu_t mcu, uint8_t version, uint8_t cmd, const u
     memcpy(mcu->tx_buf + 6, data, len);
     mcu->tx_buf[6 + len] = get_check_sum(mcu->tx_buf, 6 + len); // Checksum
 
-    printf("TUYA frame tx: ");
-    print_hex(mcu->tx_buf, PROTOCOL_HEAD + len);
+    //    printf("TUYA frame tx: ");
+    //    print_hex(mcu->tx_buf, PROTOCOL_HEAD + len);
     // Send the frame
     for (size_t i = 0; i < PROTOCOL_HEAD + len; ++i) {
         if (tuya_mcu_uart_tx(mcu->uart_context, mcu->tx_buf[i]) < 0) {
@@ -373,8 +373,8 @@ static int tuya_frame_receive(tuya_mcu_t mcu)
                 unsigned char  cmd = mcu->rx_buf[3];
                 unsigned char *data = mcu->rx_buf + 6;
 
-                printf("TUYA frame rx: ");
-                print_hex(mcu->rx_buf, PROTOCOL_HEAD + len);
+                // printf("TUYA frame rx: ");
+                // print_hex(mcu->rx_buf, PROTOCOL_HEAD + len);
                 tuya_frame_handle(mcu, version, cmd, data, len);
             } else {
                 return -1; // Checksum error

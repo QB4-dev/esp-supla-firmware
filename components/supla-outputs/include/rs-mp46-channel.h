@@ -13,9 +13,9 @@
 #include "esp-tuya-mcu.h"
 
 typedef enum {
-    MP46_RS_MANUAL_OPEN = 0,
+    MP46_RS_MANUAL_CLOSE = 0,
     MP46_RS_MANUAL_STOP = 1,
-    MP46_RS_MANUAL_CLOSE = 2,
+    MP46_RS_MANUAL_OPEN = 2,
 } mp46_rs_manual_cmd_t;
 
 struct mp46_rs_channel_config {
