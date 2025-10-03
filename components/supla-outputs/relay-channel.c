@@ -188,6 +188,10 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     data->gpio = config->gpio;
 
     gpio_config(&gpio_conf);
+
+#ifndef CONFIG_IDF_TARGET_ESP8266
+    gpio_set_direction(data->gpio, GPIO_MODE_INPUT_OUTPUT);
+#endif
     gpio_set_level(data->gpio, 0);
 
     timer_args.arg = ch;
