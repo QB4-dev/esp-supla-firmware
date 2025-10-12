@@ -77,16 +77,14 @@ void settings_pack_print(const settings_group_t *settings_pack)
                 printf("%02d:%02d\n", setting->time.hh, setting->time.mm);
                 break;
             case SETTING_TYPE_DATE:
-                printf("%02d-%02d-%04d\n", setting->date.day, setting->date.month,
-                       setting->date.year);
+                printf("%02d-%02d-%04d\n", setting->date.day, setting->date.month, setting->date.year);
                 break;
             case SETTING_TYPE_DATETIME:
                 datetime_struct_update(&setting->datetime);
                 printf("%02d:%02d %02d-%02d-%04d\n",
                        setting->datetime.time.hh, //
                        setting->datetime.time.mm, //
-                       setting->datetime.date.day, setting->datetime.date.month,
-                       setting->datetime.date.year);
+                       setting->datetime.date.day, setting->datetime.date.month, setting->datetime.date.year);
                 break;
 #endif
 #ifdef CONFIG_SETTINGS_TIMEZONE_SUPPORT
@@ -342,11 +340,10 @@ static cJSON *settings_pack_to_json(settings_group_t *settings_pack)
     cJSON *js;
 
     const char *types[] = {
-        [SETTING_TYPE_BOOL] = "BOOL",         [SETTING_TYPE_NUM] = "NUM",
-        [SETTING_TYPE_ONEOF] = "ONEOF",       [SETTING_TYPE_TEXT] = "TEXT",
+        [SETTING_TYPE_BOOL] = "BOOL",         [SETTING_TYPE_NUM] = "NUM",   [SETTING_TYPE_ONEOF] = "ONEOF",
+        [SETTING_TYPE_TEXT] = "TEXT",
 #ifdef CONFIG_SETTINGS_DATETIME_SUPPORT
-        [SETTING_TYPE_TIME] = "TIME",         [SETTING_TYPE_DATE] = "DATE",
-        [SETTING_TYPE_DATETIME] = "DATETIME",
+        [SETTING_TYPE_TIME] = "TIME",         [SETTING_TYPE_DATE] = "DATE", [SETTING_TYPE_DATETIME] = "DATETIME",
 #endif
 #ifdef CONFIG_SETTINGS_TIMEZONE_SUPPORT
         [SETTING_TYPE_TIMEZONE] = "TIMEZONE",
@@ -423,8 +420,7 @@ static cJSON *settings_pack_to_json(settings_group_t *settings_pack)
 #ifdef CONFIG_SETTINGS_COLOR_SUPPORT
             case SETTING_TYPE_COLOR: {
                 char buf[8];
-                snprintf(buf, sizeof(buf), "#%02x%02x%02x", setting->color.r, setting->color.g,
-                         setting->color.b);
+                snprintf(buf, sizeof(buf), "#%02x%02x%02x", setting->color.r, setting->color.g, setting->color.b);
                 cJSON_AddStringToObject(js_setting, "val", buf);
             } break;
 #endif
@@ -492,21 +488,19 @@ static esp_err_t set_req_handle(httpd_req_t *req)
                     if (num_val < labels_count)
                         setting->oneof.val = atoi(value);
                 } break;
-#ifdef CONFIG_SETTINGS_DATETIME_SUPPORT
                 case SETTING_TYPE_TEXT: {
                     strncpy(setting->text.val, value, setting->text.len);
                 } break;
+#ifdef CONFIG_SETTINGS_DATETIME_SUPPORT
                 case SETTING_TYPE_TIME: {
                     sscanf(value, "%d:%d", &setting->time.hh, &setting->time.mm);
                 } break;
                 case SETTING_TYPE_DATE: {
-                    sscanf(value, "%d-%d-%d", &setting->date.year, &setting->date.month,
-                           &setting->date.day);
+                    sscanf(value, "%d-%d-%d", &setting->date.year, &setting->date.month, &setting->date.day);
                 } break;
                 case SETTING_TYPE_DATETIME: {
-                    sscanf(value, "%d-%d-%dT%d:%d", &setting->datetime.date.year,
-                           &setting->datetime.date.month, &setting->datetime.date.day,
-                           &setting->datetime.time.hh, &setting->datetime.time.mm);
+                    sscanf(value, "%d-%d-%dT%d:%d", &setting->datetime.date.year, &setting->datetime.date.month,
+                           &setting->datetime.date.day, &setting->datetime.time.hh, &setting->datetime.time.mm);
 
                 } break;
 #endif
