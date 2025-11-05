@@ -1,0 +1,12 @@
+menu "Board Select"
+	choice
+	prompt "Target board"
+            default BSP_MP46WIFI
+            help
+                Select target board
+                
+	config BSP_MP46WIFI
+	    bool "BSP_MP46WIFI"
+
+	endchoice
+endmenu
