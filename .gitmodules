@@ -7,3 +7,6 @@
 [submodule "components/esp_http_server_utils"]
 	path = components/esp_http_server_utils
 	url = https://github.com/QB4-dev/esp_http_server_utils
+[submodule "components/esp-tuya-mcu"]
+	path = components/esp-tuya-mcu
+	url = https://github.com/QB4-dev/esp-tuya-mcu
