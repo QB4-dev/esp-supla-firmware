@@ -25,7 +25,7 @@ static void led_timer_callback(void *arg)
 
     led->on = !led->on;
     gpio_set_level(led->conf.gpio, led->on);
-    esp_timer_start_periodic(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
+    esp_timer_start_once(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
 }
 
 static esp_err_t led_set_state(struct led_data *led, uint16_t ontime, uint16_t offtime)
@@ -43,7 +43,7 @@ static esp_err_t led_set_state(struct led_data *led, uint16_t ontime, uint16_t o
     } else {
         led->on = !led->conf.inv_logic ? true : false;
         gpio_set_level(led->conf.gpio, led->on);
-        esp_timer_start_periodic(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
+        esp_timer_start_once(led->timer, led->on ? led->ontime * 1000 : led->offtime * 1000);
     }
     return ESP_OK;
 }
