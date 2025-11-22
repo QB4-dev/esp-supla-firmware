@@ -10,3 +10,6 @@
 [submodule "components/esp-tuya-mcu"]
 	path = components/esp-tuya-mcu
 	url = https://github.com/QB4-dev/esp-tuya-mcu
+[submodule "components/settings"]
+	path = components/settings
+	url = https://github.com/QB4-dev/esp-settings
