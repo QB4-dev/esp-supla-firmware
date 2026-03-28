@@ -7,9 +7,12 @@
 #include "include/relay-channel.h"
 #include <stdlib.h>
 #include <string.h>
+#include <esp_log.h>
 #include <esp_timer.h>
 #include <esp-supla.h>
 #include <driver/gpio.h>
+
+static const char *TAG = "RELAY-CH";
 
 struct relay_nvs_state {
     int active_func;
@@ -32,10 +35,10 @@ static int supla_relay_channel_init(supla_channel_t *ch)
     const int                  ch_num = supla_channel_get_assigned_number(ch);
     esp_err_t                  rc;
 
-    supla_log(LOG_INFO, "ch[%d] relay_ch init", ch_num);
+    ESP_LOGI(TAG, "ch[%d] init", ch_num);
     rc = supla_esp_nvs_channel_state_restore(ch, &data->nvs_state, sizeof(data->nvs_state));
     if (rc == ESP_OK) {
-        supla_log(LOG_INFO, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_state.active_func);
+        ESP_LOGI(TAG, "ch[%d] nvs read OK:func=%d", ch_num, data->nvs_state.active_func);
         supla_channel_set_active_function(ch, data->nvs_state.active_func);
     }
     return SUPLA_RESULTCODE_TRUE;
@@ -44,7 +47,7 @@ static int supla_relay_channel_init(supla_channel_t *ch)
 static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config)
 {
     struct relay_channel_data *data = supla_channel_get_data(ch);
-    supla_log(LOG_INFO, "ch[%d] relay_ch got config fn=%d", config->ChannelNumber, config->Func);
+    ESP_LOGI(TAG, "ch[%d] got config fn=%d", config->ChannelNumber, config->Func);
 
     switch (config->Func) {
     case SUPLA_CHANNELFNC_CONTROLLINGTHEGATEWAYLOCK:
@@ -61,8 +64,8 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
     case SUPLA_CHANNELFNC_LIGHTSWITCH: {
         if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
             TChannelConfig_PowerSwitch *switch_conf = (TChannelConfig_PowerSwitch *)config->Config;
-            supla_log(LOG_INFO, "power switch config: oc-max %d oc-tresh %d",
-                      switch_conf->OvercurrentMaxAllowed, switch_conf->OvercurrentThreshold);
+            ESP_LOGI(TAG, "power switch config: oc-max %d oc-tresh %d",
+                     switch_conf->OvercurrentMaxAllowed, switch_conf->OvercurrentThreshold);
 
             data->nvs_state.active_func = config->Func;
             data->nvs_state.pwr_switch_conf = *switch_conf;
@@ -73,7 +76,7 @@ static int supla_srv_relay_config(supla_channel_t *ch, TSD_ChannelConfig *config
         if (config->ConfigType == SUPLA_CONFIG_TYPE_DEFAULT && config->ConfigSize > 0) {
             TChannelConfig_StaircaseTimer *staircase_conf =
                 (TChannelConfig_StaircaseTimer *)config->Config;
-            supla_log(LOG_INFO, "staircase config: %dms", staircase_conf->TimeMS);
+            ESP_LOGI(TAG, "staircase config: %dms", staircase_conf->TimeMS);
 
             data->nvs_state.active_func = config->Func;
             data->nvs_state.staircase_conf = *staircase_conf;
@@ -103,10 +106,10 @@ static int supla_relay_channel_set(supla_channel_t *ch, TSD_SuplaChannelNewValue
 
     gpio_set_level(data->gpio, relay_val->hi);
     if (data->mseconds_left) {
-        supla_log(LOG_INFO, "ch[%d] relay set %s for %dms", ch_num, relay_val->hi ? "ON" : "OFF",
-                  data->mseconds_left);
+        ESP_LOGI(TAG, "ch[%d] set %s for %dms", ch_num, relay_val->hi ? "ON" : "OFF",
+                 data->mseconds_left);
     } else {
-        supla_log(LOG_INFO, "ch[%d] relay set %s", ch_num, relay_val->hi ? "ON" : "OFF");
+        ESP_LOGI(TAG, "ch[%d] set %s", ch_num, relay_val->hi ? "ON" : "OFF");
     }
     return supla_channel_set_relay_value(ch, relay_val);
 }
@@ -155,8 +158,8 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
 
     if ((config->supported_functions | RELAY_CH_SUPPORTED_FUNC_BITS) !=
         RELAY_CH_SUPPORTED_FUNC_BITS) {
-        supla_log(LOG_ERR, "relay_ch supported_functions conflict %x != %x",
-                  config->supported_functions, RELAY_CH_SUPPORTED_FUNC_BITS);
+        ESP_LOGE(TAG, " supported_functions conflict %x != %x", config->supported_functions,
+                 RELAY_CH_SUPPORTED_FUNC_BITS);
         return NULL;
     }
 
@@ -170,7 +173,7 @@ supla_channel_t *supla_relay_channel_create(const struct relay_channel_config *c
     case SUPLA_CHANNELFNC_STAIRCASETIMER:
         break;
     default:
-        supla_log(LOG_ERR, "channel default_function %d not supported", config->default_function);
+        ESP_LOGE(TAG, "channel default_function %d not supported", config->default_function);
         return NULL;
     }
 
