@@ -1,4 +1,4 @@
-PROJECT_NAME := esp_supla_firmware
+PROJECT_NAME := "ESP01-RGBW"
 
 EXTRA_COMPONENT_DIRS += $(abspath brd)
 EXTRA_COMPONENT_DIRS += $(abspath ../../../components)

@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := esp_supla_firmware
+PROJECT_NAME := "ESP01-DIMMER"
 
 EXTRA_COMPONENT_DIRS += $(abspath brd)
 EXTRA_COMPONENT_DIRS += $(abspath ../../../components)

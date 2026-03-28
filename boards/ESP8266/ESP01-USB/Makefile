@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := "ESP01_USB"
+PROJECT_NAME := "ESP01-USB"
 
 EXTRA_COMPONENT_DIRS += $(abspath brd)
 EXTRA_COMPONENT_DIRS += $(abspath ../../../components)
