@@ -19,25 +19,34 @@ static const char *TAG = "BSP";
 
 #define MODE_SETTINGS_GR "MODE"
 #define COLOR_SETTINGS_GR "COLOR"
+#define CCT_SETTINGS_GR "CCT"
 
-#define OUT_MODE_COLOR 0
+#define OUT_MODE_RGBW_CCT 0
 #define OUT_MODE_4xDIMMER 1
 
 static const char *mode_labels[] = {
-    "COLOR", "4xDIMMER",
+    "RGBW/CCT", "4xDIMMER",
     NULL //last
 };
 
-static const char *map_labels[] = {
+static const char *rgbw_map_labels[] = {
     [RGBW_MAP_RGBW] = "RGBW", [RGBW_MAP_GBRW] = "GBRW", [RGBW_MAP_GRBW] = "GRBW",
     [RGBW_MAP_GRWB] = "GRWB", [RGBW_MAP_BRGW] = "BRGW", NULL //last
+};
+
+static const char *cct_map_labels[] = {
+    [CCT_MAP_WWCC] = "WWCC",
+    [CCT_MAP_WCWC] = "WCWC",
+    [CCT_MAP_CWCW] = "CWCW",
+    [CCT_MAP_CCWW] = "CCWW",
+    NULL //last
 };
 
 static setting_t mode_settings[] = {
     { .id = "OUT", //
       .label = "OUTPUT",
       .type = SETTING_TYPE_ONEOF,
-      .oneof = { OUT_MODE_COLOR, OUT_MODE_COLOR, mode_labels } },
+      .oneof = { OUT_MODE_RGBW_CCT, OUT_MODE_RGBW_CCT, mode_labels } },
     {} //last element
 };
 
@@ -45,11 +54,7 @@ static setting_t color_settings[] = {
     { .id = "RGBW_MAP",
       .label = "COLOR MAP",
       .type = SETTING_TYPE_ONEOF,
-      .oneof = { RGBW_MAP_GBRW, RGBW_MAP_GBRW, map_labels } },
-    { .id = "RGB_ONLY",
-      .label = "RGB ONLY",
-      .type = SETTING_TYPE_BOOL,
-      .boolean = { false, false } },
+      .oneof = { RGBW_MAP_GBRW, RGBW_MAP_GBRW, rgbw_map_labels } },
     { .id = "COLOR",
       .label = "MANUAL COLOR",
       .type = SETTING_TYPE_COLOR,
@@ -57,9 +62,22 @@ static setting_t color_settings[] = {
     {} //last element
 };
 
+static setting_t cct_settings[] = {
+    { .id = "CCT_MAP",
+      .label = "CCT MAP",
+      .type = SETTING_TYPE_ONEOF,
+      .oneof = { CCT_MAP_CCWW, CCT_MAP_CCWW, cct_map_labels } },
+    { .id = "CCT_VAL",
+      .label = "MANUAL CCT",
+      .type = SETTING_TYPE_NUM,
+      .num = { 50, 50, { 0, 100 } } },
+    {} //last element
+};
+
 static const settings_group_t board_settings[] = {
     { .id = MODE_SETTINGS_GR, .label = "MODE", .settings = mode_settings },
     { .id = COLOR_SETTINGS_GR, .label = "COLOR", .settings = color_settings },
+    { .id = CCT_SETTINGS_GR, .label = "CCT", .settings = cct_settings },
     {}
 };
 
@@ -83,20 +101,26 @@ static void button_cb(button_t *btn, button_state_t state)
 
     setting_t *output_mode = settings_pack_find(bsp->settings_pack, MODE_SETTINGS_GR, "OUT");
     setting_t *manual_color = settings_pack_find(bsp->settings_pack, COLOR_SETTINGS_GR, "COLOR");
+    setting_t *manual_cct = settings_pack_find(bsp->settings_pack, CCT_SETTINGS_GR, "CCT_VAL");
 
     switch (state) {
     case BUTTON_CLICKED:
         ESP_LOGI(TAG, "btn clicked");
         switch (output_mode->oneof.val) {
-        case OUT_MODE_COLOR:
-            rgbw->colorBrightness = brightness_steps[++brightness_step % sizeof(brightness_steps)];
+        case OUT_MODE_RGBW_CCT:
+            brightness_step++;
+            rgbw->brightness = brightness_steps[brightness_step % sizeof(brightness_steps)];
+            rgbw->colorBrightness = brightness_steps[brightness_step % sizeof(brightness_steps)];
             rgbw->R = manual_color ? manual_color->color.r : 0xFF;
             rgbw->G = manual_color ? manual_color->color.g : 0xFF;
             rgbw->B = manual_color ? manual_color->color.b : 0xFF;
+            rgbw->whiteTemperature = manual_cct->num.val;
+
             pca9632_channel_set_value(rgbw_channel, &new_value);
             break;
         case OUT_MODE_4xDIMMER:
-            rgbw->brightness = brightness_steps[++brightness_step % sizeof(brightness_steps)];
+            brightness_step++;
+            rgbw->brightness = brightness_steps[brightness_step % sizeof(brightness_steps)];
             for (int led = LED0; led <= LED3; led++)
                 pca9632_channel_set_value(dimmer_channels[led], &new_value);
             break;
@@ -153,9 +177,10 @@ static void pulse_task(void *arg)
             rgbw->B = rgbw->B ? 0 : 255;
             rgbw->colorBrightness = rgbw->colorBrightness ? 0 : 100;
             rgbw->brightness = rgbw->brightness ? 0 : 100;
+            rgbw->whiteTemperature = 50;
 
             switch (output_mode->oneof.val) {
-            case OUT_MODE_COLOR:
+            case OUT_MODE_RGBW_CCT:
                 pca9632_channel_set_value(rgbw_channel, &new_value);
                 break;
             case OUT_MODE_4xDIMMER:
@@ -174,7 +199,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 {
     setting_t *output_mode = settings_pack_find(bsp->settings_pack, MODE_SETTINGS_GR, "OUT");
     setting_t *rgbw_map = settings_pack_find(bsp->settings_pack, COLOR_SETTINGS_GR, "RGBW_MAP");
-    setting_t *rgb_only = settings_pack_find(bsp->settings_pack, COLOR_SETTINGS_GR, "RGB_ONLY");
+    setting_t *cct_map = settings_pack_find(bsp->settings_pack, CCT_SETTINGS_GR, "CCT_MAP");
 
     if (!output_mode) {
         ESP_LOGE(TAG, "output_mode setting not found");
@@ -182,16 +207,16 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     }
 
     switch (output_mode->oneof.val) {
-    case OUT_MODE_COLOR: {
+    case OUT_MODE_RGBW_CCT: {
         struct pca9632_rgbw_channel_config rgbw_channel_conf = {
             .pca9632 = &pca9632,                                        //set chip
             .rgbw_map = rgbw_map ? rgbw_map->oneof.val : RGBW_MAP_GBRW, //set default pwm order
-            .rgb_only = rgb_only ? rgb_only->boolean.val : false        //use white channel
+            .cct_map = cct_map ? cct_map->oneof.val : CCT_MAP_CCWW,     //set default pwm order
         };
 
         rgbw_channel = pca9632_rgbw_channel_create(&rgbw_channel_conf);
         supla_dev_add_channel(dev, rgbw_channel);
-        ESP_LOGI(TAG, "RGBW channel created");
+        ESP_LOGI(TAG, "RGBW/CCT channel created");
     } break;
     case OUT_MODE_4xDIMMER: {
         struct pca9632_dimmer_channel_config dimmer_channel_conf = {
