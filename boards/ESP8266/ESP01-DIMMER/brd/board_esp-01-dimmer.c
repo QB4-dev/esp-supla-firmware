@@ -170,7 +170,7 @@ static void pulse_task(void *arg)
         bits = device_get_event_bits();
         if (bits & DEVICE_CONFIG_EVENT_BIT) {
             rgbw->brightness = rgbw->brightness ? 0 : 100;
-            supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+            ledc_dimmer_set_brightness(ledc_channel, &new_value);
         }
         vTaskDelay(pdMS_TO_TICKS(1500));
     }
@@ -214,7 +214,7 @@ static void detect_cb(gpio_num_t pin_num, input_event_t event, void *arg)
             } else {
                 rgbw->brightness = 100;
             }
-            supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+            ledc_dimmer_set_brightness(ledc_channel, &new_value);
         }
         break;
     case INPUT_EVENT_CLICKx3:
@@ -224,11 +224,11 @@ static void detect_cb(gpio_num_t pin_num, input_event_t event, void *arg)
             device_exit_config();
         break;
     case INPUT_EVENT_DONE:
-        supla_ledc_channel_get_brightness(ledc_channel, &brightness);
+        ledc_dimmer_get_brightness(ledc_channel, &brightness);
         if (brightness) {
             new_value.DurationMS = off_delay_set ? 1000 * off_delay_set->num.val : 5000;
             rgbw->brightness = brightness;
-            supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+            ledc_dimmer_set_brightness(ledc_channel, &new_value);
         }
         break;
     default:
@@ -243,7 +243,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .ledc_channel = LEDC_CHANNEL_0,
         .fade_time = 1000 //
     };
-    ledc_channel = supla_ledc_channel_create(&ledc_channel_conf);
+    ledc_channel = ledc_dimmer_channel_create(&ledc_channel_conf);
 
     struct generic_input_config in1_conf = {
         .gpio = GPIO_NUM_0,
@@ -296,7 +296,7 @@ static void config_btn_calback(gpio_num_t pin_num, exp_input_event_t event, void
     EventBits_t              bits = device_get_event_bits();
     uint8_t                  brightness;
 
-    supla_ledc_channel_get_brightness(ledc_channel, &brightness);
+    ledc_dimmer_get_brightness(ledc_channel, &brightness);
     switch (event) {
     case EXP_INPUT_EVENT_INIT:
         if (!(bits & DEVICE_CONFIG_EVENT_BIT)) {
@@ -305,7 +305,7 @@ static void config_btn_calback(gpio_num_t pin_num, exp_input_event_t event, void
                                brightness < 75  ? 75 :
                                brightness < 100 ? 100 :
                                                   0;
-            supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+            ledc_dimmer_set_brightness(ledc_channel, &new_value);
         }
         break;
     case EXP_INPUT_EVENT_DONE:
@@ -352,15 +352,15 @@ static void input_calback(gpio_num_t pin_num, exp_input_event_t event, void *arg
         } else {
             rgbw->brightness = 100;
         }
-        supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+        ledc_dimmer_set_brightness(ledc_channel, &new_value);
         break;
     case EXP_INPUT_EVENT_DONE:
         ESP_LOGI(TAG, "input %d done", pin_num);
-        supla_ledc_channel_get_brightness(ledc_channel, &brightness);
+        ledc_dimmer_get_brightness(ledc_channel, &brightness);
         if (brightness) {
             new_value.DurationMS = off_delay_set ? 1000 * off_delay_set->num.val : 5000;
             rgbw->brightness = brightness;
-            supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+            ledc_dimmer_set_brightness(ledc_channel, &new_value);
         }
         break;
     default:
@@ -381,7 +381,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .ledc_channel = LEDC_CHANNEL_0,
         .fade_time = 1000 //
     };
-    ledc_channel = supla_ledc_channel_create(&ledc_channel_conf);
+    ledc_channel = ledc_dimmer_channel_create(&ledc_channel_conf);
 
     struct exp_input_config cfg_input_conf = {
         .i2c_expander = &pca9536,
@@ -436,7 +436,7 @@ esp_err_t board_on_config_mode_init(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
 
-    supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+    ledc_dimmer_set_brightness(ledc_channel, &new_value);
     return ESP_OK;
 }
 
@@ -444,6 +444,6 @@ esp_err_t board_on_config_mode_exit(void)
 {
     TSD_SuplaChannelNewValue new_value = {};
 
-    supla_ledc_channel_set_brightness(ledc_channel, &new_value);
+    ledc_dimmer_set_brightness(ledc_channel, &new_value);
     return ESP_OK;
 }
