@@ -238,23 +238,27 @@ static void detect_cb(gpio_num_t pin_num, input_event_t event, void *arg)
 
 esp_err_t board_supla_init(supla_dev_t *dev)
 {
-    struct ledc_channel_config ledc_channel_conf = { .gpio = GPIO_NUM_3,
-                                                     .ledc_channel = LEDC_CHANNEL_0,
-                                                     .fade_time = 1000 };
+    struct ledc_channel_config ledc_channel_conf = {
+        .gpio = GPIO_NUM_3,
+        .ledc_channel = LEDC_CHANNEL_0,
+        .fade_time = 1000 //
+    };
     ledc_channel = supla_ledc_channel_create(&ledc_channel_conf);
 
-    struct generic_input_config in1_conf = { .gpio = GPIO_NUM_0,
-                                             .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
-                                                                    SUPLA_ACTION_CAP_TURN_OFF,
-                                             .related_channel = &ledc_channel,
-                                             .on_detect_cb = detect_cb,
-                                             .arg = ledc_channel };
-    struct generic_input_config in2_conf = { .gpio = GPIO_NUM_2,
-                                             .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON |
-                                                                    SUPLA_ACTION_CAP_TURN_OFF,
-                                             .related_channel = &ledc_channel,
-                                             .on_detect_cb = detect_cb,
-                                             .arg = ledc_channel };
+    struct generic_input_config in1_conf = {
+        .gpio = GPIO_NUM_0,
+        .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON | SUPLA_ACTION_CAP_TURN_OFF,
+        .related_channel = &ledc_channel,
+        .on_detect_cb = detect_cb,
+        .arg = ledc_channel //
+    };
+    struct generic_input_config in2_conf = {
+        .gpio = GPIO_NUM_2,
+        .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON | SUPLA_ACTION_CAP_TURN_OFF,
+        .related_channel = &ledc_channel,
+        .on_detect_cb = detect_cb,
+        .arg = ledc_channel //
+    };
 
     input1_channel = supla_generic_input_create(&in1_conf);
     input2_channel = supla_generic_input_create(&in2_conf);
@@ -272,6 +276,19 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 #endif //CONFIG_BSP_ESP01_DIMMER_v1_0
 
 #if defined CONFIG_BSP_ESP01_DIMMER_v1_1 || defined CONFIG_BSP_ESP01_DIMMER_v1_2
+
+static esp_err_t exp_setup_callback(i2c_dev_t *i2c_expander, uint8_t pin)
+{
+    ESP_LOGI(TAG, "input %d init", pin);
+    pca9557_set_mode(i2c_expander, pin, PCA9557_MODE_INPUT);
+    return ESP_OK;
+}
+
+static esp_err_t exp_read_callback(i2c_dev_t *i2c_expander, uint8_t pin, uint32_t *val)
+{
+    return pca9557_get_level(i2c_expander, pin, val);
+}
+
 static void config_btn_calback(gpio_num_t pin_num, exp_input_event_t event, void *arg)
 {
     TSD_SuplaChannelNewValue new_value = {};
@@ -309,9 +326,10 @@ static void input_calback(gpio_num_t pin_num, exp_input_event_t event, void *arg
     TSD_SuplaChannelNewValue new_value = {};
     TRGBW_Value             *rgbw = (TRGBW_Value *)&new_value.value;
     uint8_t                  brightness;
-    const char              *gr = (pin_num == GPIO_NUM_1) ? IN1_SETTINGS_GR :
-                                  (pin_num == GPIO_NUM_2) ? IN2_SETTINGS_GR :
-                                                            NULL;
+
+    const char *gr = (pin_num == GPIO_NUM_1) ? IN1_SETTINGS_GR :
+                     (pin_num == GPIO_NUM_2) ? IN2_SETTINGS_GR :
+                                               NULL;
 
     setting_t *off_delay_set = settings_pack_find(bsp->settings_pack, gr, "OFF_DELAY");
     setting_t *reduced_br_set = settings_pack_find(bsp->settings_pack, REDUCTION_GR, "BR");
@@ -367,18 +385,22 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 
     struct exp_input_config cfg_input_conf = {
         .i2c_expander = &pca9536,
+        .exp_setup_callback = exp_setup_callback,
+        .exp_read_callback = exp_read_callback,
         .pin_num = GPIO_NUM_0,
         .active_level = ACTIVE_LOW,
-        .callback = config_btn_calback,
+        .event_callback = config_btn_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
     };
 
     active_lvl_set = settings_pack_find(bsp->settings_pack, IN1_SETTINGS_GR, "ACTIVE_LVL");
     struct exp_input_config input1_conf = {
         .i2c_expander = &pca9536,
+        .exp_setup_callback = exp_setup_callback,
+        .exp_read_callback = exp_read_callback,
         .pin_num = GPIO_NUM_1,
         .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
-        .callback = input_calback,
+        .event_callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel //
     };
@@ -386,9 +408,11 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     active_lvl_set = settings_pack_find(bsp->settings_pack, IN2_SETTINGS_GR, "ACTIVE_LVL");
     struct exp_input_config input2_conf = {
         .i2c_expander = &pca9536,
+        .exp_setup_callback = exp_setup_callback,
+        .exp_read_callback = exp_read_callback,
         .pin_num = GPIO_NUM_2,
         .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
-        .callback = input_calback,
+        .event_callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel //
     };
