@@ -24,10 +24,10 @@ static void deferred_fade_out(void *ch)
     TRGBW_Value              *rgbw = (TRGBW_Value *)&new_value.value;
     struct ledc_channel_data *data = supla_channel_get_data(ch);
     rgbw->brightness = data->base_brightness;
-    supla_ledc_channel_set_brightness(ch, &new_value);
+    ledc_dimmer_set_brightness(ch, &new_value);
 }
 
-int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
+int ledc_dimmer_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
     TRGBW_Value              *rgbw = (TRGBW_Value *)new_value->value;
@@ -44,7 +44,7 @@ int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewVa
     return supla_channel_set_rgbw_value(ch, rgbw);
 }
 
-int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness)
+int ledc_dimmer_get_brightness(supla_channel_t *ch, uint8_t *brightness)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
 
@@ -55,16 +55,16 @@ int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness)
     return ESP_ERR_INVALID_ARG;
 }
 
-int supla_ledc_channel_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
+int ledc_dimmer_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
     TRGBW_Value              *rgbw = (TRGBW_Value *)new_value->value;
     data->base_brightness = rgbw->brightness;
 
-    return supla_ledc_channel_set_brightness(ch, new_value);
+    return ledc_dimmer_set_brightness(ch, new_value);
 }
 
-int supla_ledc_channel_get_base_brightness(supla_channel_t *ch, uint8_t *brightness)
+int ledc_dimmer_get_base_brightness(supla_channel_t *ch, uint8_t *brightness)
 {
     struct ledc_channel_data *data = supla_channel_get_data(ch);
 
@@ -75,14 +75,14 @@ int supla_ledc_channel_get_base_brightness(supla_channel_t *ch, uint8_t *brightn
     return ESP_ERR_INVALID_ARG;
 }
 
-supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *ledc_ch_conf)
+supla_channel_t *ledc_dimmer_channel_create(const struct ledc_channel_config *ledc_ch_conf)
 {
     supla_channel_config_t dimmer_channel_config = {
         .type = SUPLA_CHANNELTYPE_DIMMER,
         .supported_functions = SUPLA_BIT_FUNC_STAIRCASETIMER,
         .default_function = SUPLA_CHANNELFNC_DIMMER,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_COUNTDOWN_TIMER_SUPPORTED,
-        .on_set_value = supla_ledc_channel_set_base_brightness
+        .on_set_value = ledc_dimmer_set_base_brightness
     };
     ledc_timer_config_t ledc_timer_conf = {
         .timer_num = LEDC_TIMER_0,            // timer index

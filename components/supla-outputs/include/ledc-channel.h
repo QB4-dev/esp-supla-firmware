@@ -26,7 +26,7 @@ struct ledc_channel_config {
  * @param ledc_ch_conf LEDC channel configuration; must not be NULL.
  * @return Created channel instance on success, or NULL on error.
  */
-supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *ledc_ch_conf);
+supla_channel_t *ledc_dimmer_channel_create(const struct ledc_channel_config *ledc_ch_conf);
 
 /**
  * @brief Set current channel brightness.
@@ -35,7 +35,7 @@ supla_channel_t *supla_ledc_channel_create(const struct ledc_channel_config *led
  * @param new_value Supla payload with brightness and optional duration.
  * @return ESP_OK on success, or an ESP-IDF/Supla error code on failure.
  */
-int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+int ledc_dimmer_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
 /**
  * @brief Read current channel brightness.
@@ -44,7 +44,7 @@ int supla_ledc_channel_set_brightness(supla_channel_t *ch, TSD_SuplaChannelNewVa
  * @param brightness Output pointer receiving brightness in percent (0-100).
  * @return ESP_OK on success, or ESP_ERR_INVALID_ARG when brightness is NULL.
  */
-int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness);
+int ledc_dimmer_get_brightness(supla_channel_t *ch, uint8_t *brightness);
 
 /**
  * @brief Set base brightness value used on fade-out.
@@ -53,8 +53,7 @@ int supla_ledc_channel_get_brightness(supla_channel_t *ch, uint8_t *brightness);
  * @param new_value Supla payload with brightness and optional duration.
  * @return ESP_OK on success, or an ESP-IDF/Supla error code on failure.
  */
-int supla_ledc_channel_set_base_brightness(supla_channel_t          *ch,
-                                           TSD_SuplaChannelNewValue *new_value);
+int ledc_dimmer_set_base_brightness(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
 /**
  * @brief Read configured base brightness value.
@@ -63,6 +62,6 @@ int supla_ledc_channel_set_base_brightness(supla_channel_t          *ch,
  * @param brightness Output pointer receiving base brightness in percent (0-100).
  * @return ESP_OK on success, or ESP_ERR_INVALID_ARG when brightness is NULL.
  */
-int supla_ledc_channel_get_base_brightness(supla_channel_t *ch, uint8_t *brightness);
+int ledc_dimmer_get_base_brightness(supla_channel_t *ch, uint8_t *brightness);
 
 #endif /* _SUPLA_LEDC_CHANNEL_H_ */
