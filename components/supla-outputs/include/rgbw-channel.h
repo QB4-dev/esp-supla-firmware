@@ -8,13 +8,25 @@
 #define _SUPLA_RGBW_CHANNEL_H_
 
 #include <libsupla/channel.h>
+#include <driver/ledc.h>
+#include <driver/gpio.h>
 
+/**
+ * @brief Configuration for an RGBW channel using ESP-IDF LEDC PWM.
+ *
+ * Set gpio_ww and gpio_cw to -1 to use RGB only (no white channels).
+ */
 struct rgbw_channel_config {
-    uint32_t fade_time; //ms
+    gpio_num_t gpio_r;    ///< GPIO for Red
+    gpio_num_t gpio_g;    ///< GPIO for Green
+    gpio_num_t gpio_b;    ///< GPIO for Blue
+    gpio_num_t gpio_ww;   ///< GPIO for Warm White, or -1 for RGB only
+    gpio_num_t gpio_cw;   ///< GPIO for Cold White, or -1 for RGB only
+    uint32_t   fade_time; ///< Fade transition time in ms
 };
 
-supla_channel_t *pca9632_rgbw_channel_create(const struct rgbw_channel_config *ch_conf);
+supla_channel_t *rgbw_channel_create(const struct rgbw_channel_config *ch_conf);
 
-int supla_rgbw_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
+int rgbw_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value);
 
 #endif /* _SUPLA_RGBW_CHANNEL_H_ */
