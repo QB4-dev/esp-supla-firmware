@@ -79,6 +79,7 @@ static int pca9632_channel_on_cfg_recv(supla_channel_t *ch, TSD_ChannelConfig *c
     case SUPLA_CHANNELFNC_DIMMER_CCT:
     case SUPLA_CHANNELFNC_DIMMER_CCT_AND_RGB:
         data->nvs_state.active_func = config->Func;
+        supla_esp_nvs_channel_state_store(ch, &data->nvs_state, sizeof(data->nvs_state));
         break;
     default:
         break;
@@ -283,7 +284,7 @@ supla_channel_t *pca9632_dimmer_channel_create(const struct pca9632_dimmer_chann
 
     supla_channel_config_t supla_channel_config = {
         .type = SUPLA_CHANNELTYPE_DIMMER,
-        .supported_functions = 0xFFFF,
+        .supported_functions = SUPLA_RGBW_BIT_FUNC_DIMMER,
         .default_function = SUPLA_CHANNELFNC_DIMMER,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
         .on_set_value = pca9632_channel_set_value,
