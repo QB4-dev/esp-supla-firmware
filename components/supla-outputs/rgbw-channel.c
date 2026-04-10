@@ -65,13 +65,14 @@ static int rgbw_channel_on_cfg_recv(supla_channel_t *ch, TSD_ChannelConfig *conf
 
 int rgbw_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *new_value)
 {
-    struct rgbw_channel_data *data = supla_channel_get_data(ch);
-    const int                 active_func = data->nvs_state.active_func;
-    TRGBW_Value              *rgbw = (TRGBW_Value *)new_value->value;
+    struct rgbw_channel_data   *data = supla_channel_get_data(ch);
+    struct rgbw_channel_config *conf = &data->config;
+    const int                   active_func = data->nvs_state.active_func;
+    TRGBW_Value                *rgbw = (TRGBW_Value *)new_value->value;
 
     uint32_t r, g, b, w, cb, wt;
     uint32_t cold, warm;
-    uint32_t f = data->config.fade_time;
+    uint32_t f = conf->fade_time;
 
     supla_log(LOG_INFO, "new RGBW val: R=%d G=%d B=%d CB=%d W=%d", rgbw->R, rgbw->G, rgbw->B,
               rgbw->colorBrightness, rgbw->brightness);
