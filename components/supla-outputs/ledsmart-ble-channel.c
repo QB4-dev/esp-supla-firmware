@@ -91,13 +91,13 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
         else
             lampsmart_ble_set_levels(data->light, val, val);
     } break;
-    case SUPLA_CHANNELFNC_DIMMER_CCT:
-        /* cold/warm balance */
-        cold = (uint16_t)(wt * 0xFF / 100);
-        warm = (uint16_t)((100 - wt) * 0xFF / 100);
-        /* scale by brightness */
-        cold = (uint16_t)(cold * br / 100);
-        warm = (uint16_t)(warm * br / 100);
+    case SUPLA_CHANNELFNC_DIMMER_CCT: {
+        /* Normalize so the dominant channel reaches 255 at full brightness,
+         * then scale both channels by brightness */
+        uint8_t max_wt = (wt >= 50) ? wt : (100 - wt);
+        cold = (uint32_t)wt * br * 255U / ((uint32_t)max_wt * 100U);
+        warm = (uint32_t)(100 - wt) * br * 255U / ((uint32_t)max_wt * 100U);
+
         if (rgbw->brightness == 0)
             lampsmart_ble_turn_off(data->light);
         else
@@ -105,7 +105,7 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
 
         ESP_LOGI(TAG, "ch[%d] val: BR=%d WT=%d cold=%d warm=%d", ch_num, rgbw->brightness,
                  rgbw->whiteTemperature, cold, warm);
-        break;
+    } break;
     default:
         break;
     }
