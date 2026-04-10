@@ -106,7 +106,7 @@ static int supla_relay_channel_set(supla_channel_t *ch, TSD_SuplaChannelNewValue
 
     gpio_set_level(data->gpio, relay_val->hi);
     if (data->mseconds_left) {
-        ESP_LOGI(TAG, "ch[%d] set %s for %dms", ch_num, relay_val->hi ? "ON" : "OFF",
+        ESP_LOGI(TAG, "ch[%d] set %s for %" PRIu32 "ms", ch_num, relay_val->hi ? "ON" : "OFF",
                  data->mseconds_left);
     } else {
         ESP_LOGI(TAG, "ch[%d] set %s", ch_num, relay_val->hi ? "ON" : "OFF");
