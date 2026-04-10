@@ -13,3 +13,6 @@
 [submodule "components/nvs-settings"]
 	path = components/nvs-settings
 	url = https://github.com/QB4-dev/nvs-settings
+[submodule "components/esp-lampsmart-ble"]
+	path = components/esp-lampsmart-ble
+	url = https://github.com/QB4-dev/esp-lampsmart-ble
