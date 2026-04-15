@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "include/ledsmart-ble-channel.h"
+#include "include/lampsmart-ble-channel.h"
 #include <stdlib.h>
 #include <esp_log.h>
 #include <esp_timer.h>

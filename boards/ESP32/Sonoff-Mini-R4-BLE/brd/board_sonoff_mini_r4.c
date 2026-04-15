@@ -7,7 +7,7 @@
 #include <button.h>
 #include <status-led.h>
 #include <generic-input.h>
-#include <ledsmart-ble-channel.h>
+#include <lampsmart-ble-channel.h>
 #ifdef CONFIG_BSP_SONOFF_MINI_R4
 
 #define LED_SETTINGS_GR "LED"
@@ -86,7 +86,7 @@ static void button_cb(button_t *btn, button_state_t state)
     EventBits_t bits = device_get_event_bits();
     switch (state) {
     case BUTTON_CLICKED:
-        ESP_LOGI(TAG, "btn clicked - pairing BLE channel");
+        ESP_LOGI(TAG, "btn clicked");
         break;
     case BUTTON_PRESSED_LONG:
         ESP_LOGI(TAG, "btn pressed long");

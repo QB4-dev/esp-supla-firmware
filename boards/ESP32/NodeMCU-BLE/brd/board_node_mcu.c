@@ -5,7 +5,7 @@
 
 #include <board.h>
 #include <button.h>
-#include <ledsmart-ble-channel.h>
+#include <lampsmart-ble-channel.h>
 #include <relay-channel.h>
 
 #ifdef CONFIG_BSP_ESP32
