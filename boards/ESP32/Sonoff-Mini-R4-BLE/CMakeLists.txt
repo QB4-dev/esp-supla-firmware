@@ -15,4 +15,4 @@ set(COMPONENT_DIRS
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(SONOFF-MINI-R4)
+project(SONOFF-MINI-R4-BLE)

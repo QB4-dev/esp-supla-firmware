@@ -48,7 +48,7 @@ static const settings_group_t board_settings_pack[] = {
     {} //last element
 };
 
-static bsp_t brd_sonoff_mini_r4 = { .id = "SONOFF-MINI-R4",
+static bsp_t brd_sonoff_mini_r4 = { .id = "SONOFF-MINI-R4-BLE",
                                     .ver = "1.0",
                                     .settings_pack = board_settings_pack };
 
