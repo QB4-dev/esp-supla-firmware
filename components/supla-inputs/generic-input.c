@@ -11,29 +11,46 @@
 #include <esp_log.h>
 
 #define EXP_POLL_INTERVAL_US 10000 //10ms
-#define DEAD_TIME_US 50000             //50ms
-#define BUF_RESET_TIME_US 500000       //500ms
+#define DEAD_TIME_US 50000         //50ms
+#define BUF_RESET_TIME_US 500000   //500ms
 #define CLICK_EVENTS_MAX 5
-#define CLICK_MIN 100 //ms
-#define CLICK_MAX 250 //ms
+#define CLICK_MIN_DEFAULT_MS 100 //ms
+#define CLICK_MAX_DEFAULT_MS 300 //ms
+#define HOLD_DEFAULT_MS 1000     //ms
 
 struct input_data {
     gpio_num_t         gpio;
     uint8_t            level;
+    uint8_t            hold_sent;
     esp_timer_handle_t timer;
     uint32_t           init_time;
     uint32_t           idle_time;
+    uint32_t           click_min_time_ms;
+    uint32_t           click_max_time_ms;
+    uint32_t           hold_time_us;
     uint32_t           buf[CLICK_EVENTS_MAX];
     uint8_t            ev_num;
     on_input_calback_t on_detect_cb;
     void              *cb_arg;
 };
 
+static uint32_t resolve_input_time(uint32_t value, uint32_t default_value)
+{
+    return value ? value : default_value;
+}
+
+static void reset_click_buffer(struct input_data *data)
+{
+    memset(data->buf, 0, sizeof(data->buf));
+    data->ev_num = 0;
+}
+
 static void input_poll(void *arg)
 {
     supla_channel_t       *ch = arg;
     supla_channel_config_t ch_config;
     int                    valid_clicks;
+    uint32_t               press_time;
     struct input_data     *data;
 
     const int click_actions[CLICK_EVENTS_MAX + 1] = {
@@ -46,6 +63,7 @@ static void input_poll(void *arg)
 
     data = supla_channel_get_data(ch);
     supla_channel_get_config(ch, &ch_config);
+    press_time = data->init_time;
 
     if (data->level == 0 && data->init_time < DEAD_TIME_US) {
         // Dead time, ignore all
@@ -59,14 +77,26 @@ static void input_poll(void *arg)
         if (data->init_time == 0 && data->on_detect_cb) {
             //instant event
             data->on_detect_cb(data->gpio, INPUT_EVENT_INIT, data->cb_arg);
-            //supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_ON);
         }
         data->init_time += EXP_POLL_INTERVAL_US;
         data->idle_time = 0;
+        if (!data->hold_sent && data->init_time >= data->hold_time_us) {
+            data->hold_sent = 1;
+            reset_click_buffer(data);
+            data->on_detect_cb(data->gpio, INPUT_EVENT_HOLD, data->cb_arg);
+            if (ch_config.action_trigger_caps & SUPLA_ACTION_CAP_HOLD)
+                supla_channel_emit_action(ch, SUPLA_ACTION_CAP_HOLD);
+        }
     } else {
-        if (data->init_time > 0) {
+        if (press_time > 0 && !data->hold_sent) {
             data->buf[data->ev_num % CLICK_EVENTS_MAX] = data->init_time / 1000;
             data->ev_num++;
+        }
+        if (press_time > 0 && data->hold_sent) {
+            data->hold_sent = 0;
+            data->idle_time = 0;
+            reset_click_buffer(data);
+            data->on_detect_cb(data->gpio, INPUT_EVENT_DONE, data->cb_arg);
         }
         data->idle_time += EXP_POLL_INTERVAL_US;
         data->init_time = 0;
@@ -77,7 +107,7 @@ static void input_poll(void *arg)
 
         valid_clicks = 0;
         for (int i = 0; i < CLICK_EVENTS_MAX; i++) {
-            if (data->buf[i] >= CLICK_MIN && data->buf[i] <= CLICK_MAX)
+            if (data->buf[i] >= data->click_min_time_ms && data->buf[i] <= data->click_max_time_ms)
                 valid_clicks++;
         }
         if (valid_clicks) {
@@ -85,10 +115,8 @@ static void input_poll(void *arg)
             if (ch_config.action_trigger_caps & click_actions[valid_clicks])
                 supla_channel_emit_action(ch, click_actions[valid_clicks]);
         }
-        memset(data->buf, 0, sizeof(data->buf));
-        data->ev_num = 0;
+        reset_click_buffer(data);
         data->on_detect_cb(data->gpio, INPUT_EVENT_DONE, data->cb_arg);
-        //supla_channel_emit_action(ch,SUPLA_ACTION_CAP_TURN_OFF);
     }
 }
 
@@ -127,6 +155,13 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     data->gpio = input_conf->gpio;
     data->level = 1;
     data->on_detect_cb = input_conf->on_event_cb;
+    data->click_min_time_ms =
+        resolve_input_time(input_conf->click_min_time_ms, CLICK_MIN_DEFAULT_MS);
+    data->click_max_time_ms =
+        resolve_input_time(input_conf->click_max_time_ms, CLICK_MAX_DEFAULT_MS);
+    if (data->click_max_time_ms < data->click_min_time_ms)
+        data->click_max_time_ms = data->click_min_time_ms;
+    data->hold_time_us = resolve_input_time(input_conf->hold_time_ms, HOLD_DEFAULT_MS) * 1000U;
     data->cb_arg = input_conf->arg;
     supla_channel_set_data(ch, data);
 

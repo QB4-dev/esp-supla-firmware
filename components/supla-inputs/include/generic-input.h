@@ -17,6 +17,7 @@ typedef enum {
     INPUT_EVENT_CLICK3,
     INPUT_EVENT_CLICK4,
     INPUT_EVENT_CLICK5,
+    INPUT_EVENT_HOLD,
     INPUT_EVENT_DONE
 } input_event_t;
 
@@ -27,6 +28,9 @@ struct generic_input_config {
     unsigned int       action_trigger_caps;
     supla_channel_t  **related_channel;
     on_input_calback_t on_event_cb;
+    uint16_t           click_min_time_ms;
+    uint16_t           click_max_time_ms;
+    uint16_t           hold_time_ms;
     void              *arg;
 };
 

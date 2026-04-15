@@ -102,19 +102,19 @@ static void button_cb(button_t *btn, button_state_t state)
 
 static void switch_cb(gpio_num_t pin_num, input_event_t event, void *arg)
 {
+    TSD_SuplaChannelNewValue new_value = {};
+    TRGBW_Value             *rgbw = (TRGBW_Value *)&new_value.value;
+
     const char *events[] = {
         [INPUT_EVENT_INIT] = "INPUT_EVENT_INIT",      [INPUT_EVENT_CLICK1] = "INPUT_EVENT_CLICKx1",
         [INPUT_EVENT_CLICK2] = "INPUT_EVENT_CLICKx2", [INPUT_EVENT_CLICK3] = "INPUT_EVENT_CLICKx3",
         [INPUT_EVENT_CLICK4] = "INPUT_EVENT_CLICKx4", [INPUT_EVENT_CLICK5] = "INPUT_EVENT_CLICKx5",
-        [INPUT_EVENT_DONE] = "INPUT_EVENT_DONE"
+        [INPUT_EVENT_HOLD] = "INPUT_EVENT_HOLD",      [INPUT_EVENT_DONE] = "INPUT_EVENT_DONE"
     };
 
     ESP_LOGI(TAG, "input event GPIO %d: %s", pin_num, events[event]);
     switch (event) {
-    case INPUT_EVENT_INIT:
-        TSD_SuplaChannelNewValue new_value = {};
-        TRGBW_Value             *rgbw = (TRGBW_Value *)&new_value.value;
-
+    case INPUT_EVENT_CLICK1:
         TRGBW_Value value_now;
         lamp_ble_channel_get_value(ble_channel, &value_now);
         if (value_now.brightness > 0) {
@@ -124,6 +124,8 @@ static void switch_cb(gpio_num_t pin_num, input_event_t event, void *arg)
             rgbw->whiteTemperature = 0;
         }
         lamp_ble_channel_set_value(ble_channel, &new_value);
+        break;
+    case INPUT_EVENT_HOLD:
         break;
     default:
         break;
