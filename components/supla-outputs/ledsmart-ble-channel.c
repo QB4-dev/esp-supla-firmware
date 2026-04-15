@@ -20,6 +20,7 @@ struct lamp_ble_channel_data {
     struct lamp_ble_channel_config config;
     struct lamp_ble_nvs_state      nvs_state;
     lampsmart_ble_t                light;
+    TRGBW_Value                   *value;
 };
 
 static const char *variant_name(lampsmart_variant_t variant)
@@ -78,6 +79,7 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     const int active_func = data->nvs_state.active_func;
 
     TRGBW_Value *rgbw = (TRGBW_Value *)new_value->value;
+    memcpy(&data->value, rgbw, sizeof(TRGBW_Value));
 
     uint8_t br = rgbw->brightness;
     uint8_t wt = rgbw->whiteTemperature;
@@ -109,7 +111,20 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     default:
         break;
     }
+
+    if (data->config.relay_gpio != GPIO_NUM_NC) {
+        gpio_set_level(data->config.relay_gpio, br > 0 ? 1 : 0);
+    }
     return supla_channel_set_rgbw_value(ch, rgbw);
+}
+
+int lamp_ble_channel_get_value(supla_channel_t *ch, TRGBW_Value *value)
+{
+    struct lamp_ble_channel_data *data = supla_channel_get_data(ch);
+    if (!data->value)
+        return ESP_ERR_INVALID_STATE;
+    *value = *data->value;
+    return ESP_OK;
 }
 
 supla_channel_t *lamp_ble_channel_create(const struct lamp_ble_channel_config *conf)
@@ -143,6 +158,11 @@ supla_channel_t *lamp_ble_channel_create(const struct lamp_ble_channel_config *c
         supla_channel_free(ch);
         free(data);
         return NULL;
+    }
+
+    if (conf->relay_gpio != GPIO_NUM_NC) {
+        gpio_set_direction(conf->relay_gpio, GPIO_MODE_OUTPUT);
+        gpio_set_level(conf->relay_gpio, 0); // Active LOW relay
     }
 
     ESP_LOGI(TAG,
@@ -187,5 +207,12 @@ int lamp_ble_channel_pair(supla_channel_t *ch)
 
     ESP_LOGI(TAG, "ch[%d] BLE  pairing started using SmartLamp protocol %s", ch_num,
              variant_name(data->config.lamp_config.variant));
+
+    if (data->config.relay_gpio != GPIO_NUM_NC) {
+        gpio_set_level(data->config.relay_gpio, 0);
+        vTaskDelay(pdMS_TO_TICKS(500)); // Allow relay to settle
+        gpio_set_level(data->config.relay_gpio, 1);
+        vTaskDelay(pdMS_TO_TICKS(1000)); // wait for power cycle and be ready for pairing
+    }
     return lampsmart_ble_pair(data->light);
 }

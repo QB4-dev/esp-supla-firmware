@@ -1,0 +1,12 @@
+menu "Board Select"
+	choice
+	prompt "Target board"
+            default BSP_SONOFF_MINI_R4
+            help
+                Select target board
+                
+	config BSP_SONOFF_MINI_R4
+	    bool "BSP_SONOFF-MINI-R4"
+
+	endchoice
+endmenu
