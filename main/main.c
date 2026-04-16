@@ -137,6 +137,13 @@ static esp_err_t supla_device_init(void)
 
 void app_main()
 {
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        // NVS partition was truncated or version mismatch → erase and retry
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(err);
     ESP_ERROR_CHECK(board_early_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 

@@ -15,8 +15,8 @@
 #define BUF_RESET_TIME_US 500000   //500ms
 #define CLICK_EVENTS_MAX 5
 #define CLICK_MIN_DEFAULT_MS 100 //ms
-#define CLICK_MAX_DEFAULT_MS 300 //ms
-#define HOLD_DEFAULT_MS 1000     //ms
+#define CLICK_MAX_DEFAULT_MS 400 //ms
+#define HOLD_DEFAULT_MS 800      //ms
 
 struct input_data {
     gpio_num_t         gpio;
