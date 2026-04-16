@@ -10,9 +10,9 @@
 #include <esp_timer.h>
 #include <esp_log.h>
 
-#define EXP_POLL_INTERVAL_US 10000 //10ms
-#define DEAD_TIME_US 50000         //50ms
-#define BUF_RESET_TIME_US 500000   //500ms
+#define EXP_POLL_INTERVAL_US 100000 //100ms
+#define DEAD_TIME_US 100000         //100ms
+#define BUF_RESET_TIME_US 500000    //500ms
 #define CLICK_EVENTS_MAX 5
 #define CLICK_MIN_DEFAULT_MS 100 //ms
 #define CLICK_MAX_DEFAULT_MS 400 //ms
@@ -20,7 +20,8 @@
 
 struct input_data {
     gpio_num_t         gpio;
-    uint8_t            level;
+    uint8_t            pin_level;
+    uint8_t            active_level;
     uint8_t            hold_sent;
     esp_timer_handle_t timer;
     uint32_t           init_time;
@@ -37,6 +38,11 @@ struct input_data {
 static uint32_t resolve_input_time(uint32_t value, uint32_t default_value)
 {
     return value ? value : default_value;
+}
+
+static inline int is_active_level(const struct input_data *data, int level)
+{
+    return (level == (int)data->active_level);
 }
 
 static void reset_click_buffer(struct input_data *data)
@@ -65,14 +71,14 @@ static void input_poll(void *arg)
     supla_channel_get_config(ch, &ch_config);
     press_time = data->init_time;
 
-    if (data->level == 0 && data->init_time < DEAD_TIME_US) {
+    if (is_active_level(data, data->pin_level) && data->init_time < DEAD_TIME_US) {
         // Dead time, ignore all
         data->init_time += EXP_POLL_INTERVAL_US;
         return;
     }
 
-    data->level = gpio_get_level(data->gpio);
-    if (data->level == 0) {
+    data->pin_level = gpio_get_level(data->gpio);
+    if (is_active_level(data, data->pin_level)) {
         // detection is active
         if (data->init_time == 0 && data->on_detect_cb) {
             //instant event
@@ -130,9 +136,17 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
         .action_trigger_related_channel = input_conf->related_channel
     };
 
+    const int   active_level = (input_conf->active_level == ACTIVE_HIGH) ? 1 : 0;
+    pull_mode_t pull_mode = input_conf->pull_mode;
+
+    if (pull_mode == PULL_AUTO)
+        pull_mode = active_level ? PULL_DOWN : PULL_UP;
+
     gpio_config_t gpio_conf = {
         .pin_bit_mask = (1ULL << input_conf->gpio),
         .mode = GPIO_MODE_INPUT,
+        .pull_up_en = (pull_mode == PULL_UP) ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE,
+        .pull_down_en = (pull_mode == PULL_DOWN) ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE //
     };
 
@@ -153,7 +167,8 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
         return NULL;
     }
     data->gpio = input_conf->gpio;
-    data->level = 1;
+    data->active_level = active_level;
+    data->pin_level = 1 - active_level;
     data->on_detect_cb = input_conf->on_event_cb;
     data->click_min_time_ms =
         resolve_input_time(input_conf->click_min_time_ms, CLICK_MIN_DEFAULT_MS);
@@ -166,6 +181,7 @@ supla_channel_t *supla_generic_input_create(const struct generic_input_config *i
     supla_channel_set_data(ch, data);
 
     gpio_config(&gpio_conf);
+    data->pin_level = gpio_get_level(data->gpio);
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
     esp_timer_start_periodic(data->timer, EXP_POLL_INTERVAL_US);
