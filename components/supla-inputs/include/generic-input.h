@@ -11,6 +11,13 @@
 #include <driver/gpio.h>
 
 typedef enum {
+    ACTIVE_LOW = 0, //
+    ACTIVE_HIGH = 1
+} active_level_t;
+
+typedef enum { PULL_AUTO = 0, PULL_UP, PULL_DOWN, PULL_NONE } pull_mode_t;
+
+typedef enum {
     INPUT_EVENT_INIT = 0,
     INPUT_EVENT_CLICK1,
     INPUT_EVENT_CLICK2,
@@ -25,6 +32,8 @@ typedef void (*on_input_calback_t)(gpio_num_t pin_num, input_event_t event, void
 
 struct generic_input_config {
     gpio_num_t         gpio;
+    active_level_t     active_level;
+    pull_mode_t        pull_mode;
     unsigned int       action_trigger_caps;
     supla_channel_t  **related_channel;
     on_input_calback_t on_event_cb;
