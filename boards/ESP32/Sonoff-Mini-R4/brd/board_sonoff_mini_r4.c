@@ -114,6 +114,8 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 
     struct generic_input_config sw_conf = {
         .gpio = GPIO_NUM_27,
+        .active_level = ACTIVE_LOW,
+        .pull_mode = PULL_UP,
         .action_trigger_caps = SUPLA_ACTION_CAP_SHORT_PRESS_x1 | SUPLA_ACTION_CAP_SHORT_PRESS_x2 |
                                SUPLA_ACTION_CAP_SHORT_PRESS_x3 | SUPLA_ACTION_CAP_SHORT_PRESS_x4 |
                                SUPLA_ACTION_CAP_SHORT_PRESS_x5 | SUPLA_ACTION_CAP_HOLD,
