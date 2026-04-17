@@ -63,28 +63,21 @@ static void button_cb(button_t *btn, button_state_t state)
 static void switch_cb(gpio_num_t pin_num, input_event_t event, void *arg)
 {
     TRelayChannel_Value relay_value = {};
-    EventBits_t         bits = device_get_event_bits();
 
     const char *events[] = {
         [INPUT_EVENT_INIT] = "INPUT_EVENT_INIT",      [INPUT_EVENT_CLICK1] = "INPUT_EVENT_CLICKx1",
         [INPUT_EVENT_CLICK2] = "INPUT_EVENT_CLICKx2", [INPUT_EVENT_CLICK3] = "INPUT_EVENT_CLICKx3",
         [INPUT_EVENT_CLICK4] = "INPUT_EVENT_CLICKx4", [INPUT_EVENT_CLICK5] = "INPUT_EVENT_CLICKx5",
-        [INPUT_EVENT_DONE] = "INPUT_EVENT_DONE"
+        [INPUT_EVENT_HOLD] = "INPUT_EVENT_HOLD",      [INPUT_EVENT_DONE] = "INPUT_EVENT_DONE"
     };
 
     ESP_LOGI(TAG, "input event GPIO %d: %s", pin_num, events[event]);
     switch (event) {
-    case INPUT_EVENT_INIT:
-        break;
-    case INPUT_EVENT_CLICK3:
-        if (!(bits & DEVICE_CONFIG_EVENT_BIT))
-            device_init_config();
-        else
-            device_exit_config();
-        break;
-    case INPUT_EVENT_DONE:
+    case INPUT_EVENT_CLICK1:
         relay_value.hi = !supla_relay_channel_get_state(relay_channel);
         supla_relay_channel_set_local(relay_channel, &relay_value);
+        break;
+    case INPUT_EVENT_HOLD:
         break;
     default:
         break;
@@ -121,6 +114,8 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 
     struct generic_input_config sw_conf = {
         .gpio = GPIO_NUM_27,
+        .active_level = ACTIVE_LOW,
+        .pull_mode = PULL_UP,
         .action_trigger_caps = SUPLA_ACTION_CAP_SHORT_PRESS_x1 | SUPLA_ACTION_CAP_SHORT_PRESS_x2 |
                                SUPLA_ACTION_CAP_SHORT_PRESS_x3 | SUPLA_ACTION_CAP_SHORT_PRESS_x4 |
                                SUPLA_ACTION_CAP_SHORT_PRESS_x5 | SUPLA_ACTION_CAP_HOLD,
