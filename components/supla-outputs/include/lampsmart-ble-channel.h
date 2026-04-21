@@ -30,5 +30,4 @@ int lamp_ble_channel_pair(supla_channel_t *ch);
 int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *value);
 int lamp_ble_channel_get_value(supla_channel_t *ch, TRGBW_Value *value);
 
-
 #endif /* _SUPLA_LEDSMART_BLE_CHANNEL_H_ */
