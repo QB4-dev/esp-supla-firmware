@@ -85,6 +85,10 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     uint8_t wt = rgbw->whiteTemperature;
     uint8_t cold, warm;
 
+    if (data->config.relay_gpio != GPIO_NUM_NC) {
+        gpio_set_level(data->config.relay_gpio, br > 0 ? 1 : 0);
+    }
+
     switch (active_func) {
     case SUPLA_CHANNELFNC_DIMMER: {
         uint8_t val = (uint16_t)br * 255 / 100;
@@ -110,10 +114,6 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     } break;
     default:
         break;
-    }
-
-    if (data->config.relay_gpio != GPIO_NUM_NC) {
-        gpio_set_level(data->config.relay_gpio, br > 0 ? 1 : 0);
     }
     return supla_channel_set_rgbw_value(ch, rgbw);
 }
@@ -210,9 +210,9 @@ int lamp_ble_channel_pair(supla_channel_t *ch)
 
     if (data->config.relay_gpio != GPIO_NUM_NC) {
         gpio_set_level(data->config.relay_gpio, 0);
-        vTaskDelay(pdMS_TO_TICKS(500)); // Allow relay to settle
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Allow relay to settle
         gpio_set_level(data->config.relay_gpio, 1);
-        vTaskDelay(pdMS_TO_TICKS(1000)); // wait for power cycle and be ready for pairing
+        vTaskDelay(pdMS_TO_TICKS(3000)); // wait for power cycle and be ready for pairing
     }
     return lampsmart_ble_pair(data->light);
 }
