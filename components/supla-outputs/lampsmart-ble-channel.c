@@ -4,6 +4,14 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include "sdkconfig.h"
+
+#ifdef CONFIG_IDF_TARGET_ESP8266
+
+/* LampSmart BLE controller is not supported on ESP8266 builds. */
+
+#else
+
 #include "include/lampsmart-ble-channel.h"
 #include <stdlib.h>
 #include <esp_log.h>
@@ -247,3 +255,5 @@ int lamp_ble_channel_pair(supla_channel_t *ch)
     }
     return lampsmart_ble_pair(data->light);
 }
+
+#endif /* CONFIG_IDF_TARGET_ESP8266 */
