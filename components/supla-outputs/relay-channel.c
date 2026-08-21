@@ -7,6 +7,7 @@
 #include "include/relay-channel.h"
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <esp_log.h>
 #include <esp_timer.h>
 #include <esp-supla.h>

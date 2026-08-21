@@ -38,7 +38,7 @@ static setting_t ble_settings[] = {
     { .id = "GROUP_ID",
       .label = "GROUP ID",
       .type = SETTING_TYPE_NUM,
-      .num = { 0, 0, { 1, 1024 } } },
+      .num = { 0, 0, { 1, 0xFFFF } } },
     {} //last element
 };
 
@@ -142,6 +142,9 @@ esp_err_t board_supla_init(supla_dev_t *dev)
 {
     setting_t *led_setting = settings_pack_find(bsp->settings_pack, LED_SETTINGS_GR, "ONLINE");
 
+    setting_t *proto_set = settings_pack_find(bsp->settings_pack, BLE_SETTINGS_GR, "PROTO");
+    setting_t *group_set = settings_pack_find(bsp->settings_pack, BLE_SETTINGS_GR, "GROUP_ID");
+
     static button_t config_btn_conf = {
         .gpio = GPIO_NUM_0, .callback = button_cb //
     };
@@ -154,9 +157,14 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     status_led = supla_status_led_init(dev, &led_conf);
 
     struct lamp_ble_channel_config ble_channel_conf = {
-        .lamp_config = LAMPSMART_BLE_CONFIG_DEFAULT(), //
-        .relay_gpio = GPIO_NUM_26                      //
+        .lamp_config = { .variant = proto_set ? proto_set->oneof.val : LAMPSMART_VARIANT_3,
+                         .group_id = group_set ? group_set->num.val : 0x1234,
+                         .reversed_channels = false,
+                         .min_brightness = 1,
+                         .tx_duration_ms = 800U },
+        .relay_gpio = GPIO_NUM_26 //
     };
+
     ble_channel = lamp_ble_channel_create(&ble_channel_conf);
 
     struct generic_input_config sw_conf = {

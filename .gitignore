@@ -5,3 +5,4 @@ boards/*/*/sdkconfig.old
 .settings
 .vscode/
 *.lock
+managed_components

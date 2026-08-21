@@ -4,6 +4,14 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include "sdkconfig.h"
+
+#ifdef CONFIG_IDF_TARGET_ESP8266
+
+/* LampSmart BLE controller is not supported on ESP8266 builds. */
+
+#else
+
 #include "include/lampsmart-ble-channel.h"
 #include <stdlib.h>
 #include <esp_log.h>
@@ -11,6 +19,8 @@
 #include <esp-supla.h>
 
 static const char *TAG = "BLE-CH";
+
+#define LAMP_BLE_POWER_ON_BLE_READY_MS 3000
 
 struct lamp_ble_nvs_state {
     int active_func;
@@ -20,8 +30,23 @@ struct lamp_ble_channel_data {
     struct lamp_ble_channel_config config;
     struct lamp_ble_nvs_state      nvs_state;
     lampsmart_ble_t                light;
-    TRGBW_Value                   *value;
+    TRGBW_Value                    value;
+    bool                           relay_is_on;
+    int64_t                        relay_power_on_us;
 };
+
+static void lamp_ble_wait_for_ble_ready_after_power_on(struct lamp_ble_channel_data *data)
+{
+    if (data->config.relay_gpio == GPIO_NUM_NC)
+        return;
+
+    if (!data->relay_is_on)
+        return;
+
+    int64_t elapsed_ms = (esp_timer_get_time() - data->relay_power_on_us) / 1000;
+    if (elapsed_ms < LAMP_BLE_POWER_ON_BLE_READY_MS)
+        vTaskDelay(pdMS_TO_TICKS(LAMP_BLE_POWER_ON_BLE_READY_MS - elapsed_ms));
+}
 
 static const char *variant_name(lampsmart_variant_t variant)
 {
@@ -79,19 +104,34 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     const int active_func = data->nvs_state.active_func;
 
     TRGBW_Value *rgbw = (TRGBW_Value *)new_value->value;
-    memcpy(&data->value, rgbw, sizeof(TRGBW_Value));
+    memcpy(&data->value, rgbw, sizeof(data->value));
 
     uint8_t br = rgbw->brightness;
     uint8_t wt = rgbw->whiteTemperature;
     uint8_t cold, warm;
+
+    if (data->config.relay_gpio != GPIO_NUM_NC) {
+        if (br > 0) {
+            if (!data->relay_is_on) {
+                gpio_set_level(data->config.relay_gpio, 1);
+                data->relay_is_on = true;
+                data->relay_power_on_us = esp_timer_get_time();
+            }
+        } else if (data->relay_is_on) {
+            gpio_set_level(data->config.relay_gpio, 0);
+            data->relay_is_on = false;
+        }
+    }
 
     switch (active_func) {
     case SUPLA_CHANNELFNC_DIMMER: {
         uint8_t val = (uint16_t)br * 255 / 100;
         if (rgbw->brightness == 0)
             lampsmart_ble_turn_off(data->light);
-        else
+        else {
+            lamp_ble_wait_for_ble_ready_after_power_on(data);
             lampsmart_ble_set_levels(data->light, val, val);
+        }
     } break;
     case SUPLA_CHANNELFNC_DIMMER_CCT: {
         /* Normalize so the dominant channel reaches 255 at full brightness,
@@ -102,8 +142,10 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
 
         if (rgbw->brightness == 0)
             lampsmart_ble_turn_off(data->light);
-        else
+        else {
+            lamp_ble_wait_for_ble_ready_after_power_on(data);
             lampsmart_ble_set_levels(data->light, cold, warm);
+        }
 
         ESP_LOGI(TAG, "ch[%d] val: BR=%d WT=%d cold=%d warm=%d", ch_num, rgbw->brightness,
                  rgbw->whiteTemperature, cold, warm);
@@ -111,19 +153,14 @@ int lamp_ble_channel_set_value(supla_channel_t *ch, TSD_SuplaChannelNewValue *ne
     default:
         break;
     }
-
-    if (data->config.relay_gpio != GPIO_NUM_NC) {
-        gpio_set_level(data->config.relay_gpio, br > 0 ? 1 : 0);
-    }
     return supla_channel_set_rgbw_value(ch, rgbw);
 }
 
 int lamp_ble_channel_get_value(supla_channel_t *ch, TRGBW_Value *value)
 {
     struct lamp_ble_channel_data *data = supla_channel_get_data(ch);
-    if (!data->value)
-        return ESP_ERR_INVALID_STATE;
-    *value = *data->value;
+
+    *value = data->value;
     return ESP_OK;
 }
 
@@ -152,6 +189,8 @@ supla_channel_t *lamp_ble_channel_create(const struct lamp_ble_channel_config *c
     }
 
     data->config = *conf;
+    data->relay_is_on = false;
+    data->relay_power_on_us = 0;
     supla_channel_set_data(ch, data);
 
     if (lampsmart_ble_init(&data->light, &data->config.lamp_config) != ESP_OK) {
@@ -210,9 +249,11 @@ int lamp_ble_channel_pair(supla_channel_t *ch)
 
     if (data->config.relay_gpio != GPIO_NUM_NC) {
         gpio_set_level(data->config.relay_gpio, 0);
-        vTaskDelay(pdMS_TO_TICKS(500)); // Allow relay to settle
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Allow relay to settle
         gpio_set_level(data->config.relay_gpio, 1);
-        vTaskDelay(pdMS_TO_TICKS(1000)); // wait for power cycle and be ready for pairing
+        vTaskDelay(pdMS_TO_TICKS(LAMP_BLE_POWER_ON_BLE_READY_MS)); // wait for power cycle
     }
     return lampsmart_ble_pair(data->light);
 }
+
+#endif /* CONFIG_IDF_TARGET_ESP8266 */
