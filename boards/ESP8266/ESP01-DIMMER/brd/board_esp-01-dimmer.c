@@ -400,6 +400,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .exp_read_callback = exp_read_callback,
         .pin_num = GPIO_NUM_1,
         .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
+        .filter_samples = 10,
         .event_callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel //
@@ -412,6 +413,7 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .exp_read_callback = exp_read_callback,
         .pin_num = GPIO_NUM_2,
         .active_level = active_lvl_set ? active_lvl_set->oneof.val : ACTIVE_HIGH,
+        .filter_samples = 10,
         .event_callback = input_calback,
         .action_trigger_caps = SUPLA_ACTION_CAP_TURN_ON,
         .related_channel = &ledc_channel //
