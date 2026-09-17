@@ -17,8 +17,8 @@
  * @brief Input active level configuration for expander input.
  */
 typedef enum {
-    ACTIVE_LOW = 0, /**< Input is active when low. */
-    ACTIVE_HIGH = 1 /**< Input is active when high. */
+    EXP_INPUT_ACTIVE_LOW = 0, /**< Input is active when low. */
+    EXP_INPUT_ACTIVE_HIGH = 1 /**< Input is active when high. */
 } exp_input_active_t;
 
 /**
@@ -67,9 +67,10 @@ struct exp_input_config {
     exp_setup_callback_t exp_setup_callback; /**< Setup callback function. */
     exp_read_callback_t  exp_read_callback;  /**< Read callback function. */
 
-    gpio_num_t         pin_num;      /**< Expander pin number to use as input. */
-    exp_input_active_t active_level; /**< Input active level (low or high). */
-    uint32_t           hold_time;    /**< Hold time in ms for hold event; 0 uses default. */
+    gpio_num_t         pin_num;        /**< Expander pin number to use as input. */
+    exp_input_active_t active_level;   /**< Input active level (low or high). */
+    uint8_t            filter_samples; /**< Number of samples required for stable input state. */
+    uint32_t           hold_time;      /**< Hold time in ms for hold event; 0 uses default. */
 
     unsigned int      action_trigger_caps; /**< SUPLA_ACTION_CAP_* bitmask for supported actions. */
     supla_channel_t **related_channel;     /**< Related channels for action trigger. */

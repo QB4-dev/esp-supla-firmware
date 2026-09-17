@@ -20,6 +20,8 @@ struct exp_input_data {
     struct exp_input_config config;
 
     uint32_t           prev_level;
+    uint32_t           stable_level;
+    uint8_t            debounce_count;
     esp_timer_handle_t timer;
     TickType_t         init_tick;
     bool               hold;
@@ -30,22 +32,34 @@ static void exp_input_poll(void *arg)
     supla_channel_t       *ch = arg;
     supla_channel_config_t ch_config;
     uint32_t               level;
+    uint32_t               raw_level;
     TickType_t             tick = xTaskGetTickCount();
     exp_input_event_t      event = EXP_INPUT_EVENT_NONE;
     struct exp_input_data *data = supla_channel_get_data(ch);
 
     supla_channel_get_config(ch, &ch_config);
-    data->config.exp_read_callback(data->config.i2c_expander, data->config.pin_num, &level);
+    data->config.exp_read_callback(data->config.i2c_expander, data->config.pin_num, &raw_level);
+
+    if (raw_level != data->stable_level) {
+        data->debounce_count++;
+        if (data->debounce_count >= data->config.filter_samples) {
+            data->stable_level = raw_level;
+            data->debounce_count = 0;
+        }
+    } else {
+        data->debounce_count = 0;
+    }
+    level = data->stable_level;
 
     /* falling edge */
     if (data->prev_level && !level) {
-        event = (data->config.active_level == ACTIVE_LOW) ? EXP_INPUT_EVENT_INIT :
-                                                            EXP_INPUT_EVENT_DONE;
+        event = (data->config.active_level == EXP_INPUT_ACTIVE_LOW) ? EXP_INPUT_EVENT_INIT :
+                                                                      EXP_INPUT_EVENT_DONE;
     }
     /* rising edge */
     if (!data->prev_level && level) {
-        event = (data->config.active_level == ACTIVE_HIGH) ? EXP_INPUT_EVENT_INIT :
-                                                             EXP_INPUT_EVENT_DONE;
+        event = (data->config.active_level == EXP_INPUT_ACTIVE_HIGH) ? EXP_INPUT_EVENT_INIT :
+                                                                       EXP_INPUT_EVENT_DONE;
     }
 
     if (event == EXP_INPUT_EVENT_INIT) {
@@ -123,6 +137,7 @@ supla_channel_t *supla_exp_input_create(const struct exp_input_config *config)
 
     config->exp_setup_callback(data->config.i2c_expander, config->pin_num);
     config->exp_read_callback(data->config.i2c_expander, config->pin_num, &data->prev_level);
+    data->stable_level = data->prev_level;
 
     timer_args.arg = ch;
     esp_timer_create(&timer_args, &data->timer);
