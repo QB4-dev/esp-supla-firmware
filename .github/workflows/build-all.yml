@@ -1,0 +1,91 @@
+name: Build All Supla Firmware Boards
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual execution via the UI
+
+jobs:
+  # --- JOB 1: Build all ESP32 variants using ESP-IDF ---
+  build-esp32:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define paths to each of your ESP32 board directories here
+        board_path: 
+          - 'boards/ESP32/NodeMCU'
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive' # Vital for fetching your esp-libsupla component
+
+    - name: Build ESP32 Firmware
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        target: 'esp32'
+        esp_idf_version: 'v4.4' # Matches the older GNU Make/CMake transition era of the repo
+        path: ${{ matrix.board_path }}
+
+    - name: Upload ESP32 Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.board_path }}-binaries
+        path: |
+          ${{ matrix.board_path }}/build/*.bin
+          ${{ matrix.board_path }}/build/bootloader/bootloader.bin
+          ${{ matrix.board_path }}/build/partition_table/partition-table.bin
+
+  # --- JOB 2: Build all ESP8266 variants using Legacy Make & RTOS-SDK ---
+  build-esp8266:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define paths to each of your ESP8266 board directories here
+        board_path: 
+          - 'boards/ESP8266/NodeMCU'
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Install Toolchain and SDK Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc git wget make libncurses-dev flex bison gperf python3 python3-pip python3-setuptools python3-serial python3-cryptography python3-future python3-pyparsing python3-click
+
+    - name: Setup ESP8266 RTOS SDK & GCC Toolchain
+      run: |
+        # Download and extract the matching Xtensa GCC Toolchain for ESP8266
+        wget https://espressif.com
+        tar -xzf xtensa-lx106-elf-gcc8_4_0-esp-2020r3-linux-amd64.tar.gz
+        
+        # Clone official ESP8266 RTOS SDK (v3.4 is the stable release matching standard 'make')
+        git clone --recursive --branch master https://github.com/QB4-dev/ESP8266_RTOS_SDK
+        
+        # Set up Python requirements for the SDK tool
+        python3 -m pip install -r ESP8266_RTOS_SDK/requirements.txt
+
+    - name: Run Build (Make)
+      run: |
+        # Export paths into the active shell environment
+        export PATH=$GRID_HOME/xtensa-lx106-elf/bin:$PATH
+        export IDF_PATH=$GITHUB_WORKSPACE/ESP8266_RTOS_SDK
+        
+        # Move into the specific board directory and compile via legacy Make
+        cd ${{ matrix.board_path }}
+        make defconfig
+        make
+
+    - name: Upload ESP8266 Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.board_path }}-binaries
+        path: ${{ matrix.board_path }}/build/*.bin
