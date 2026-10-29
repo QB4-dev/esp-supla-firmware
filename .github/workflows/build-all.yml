@@ -48,7 +48,7 @@ jobs:
       matrix:
         include:
           - board_name: "ESP8266-NodeMCU"
-            board_path: "boards/ESP8266/NodeMCU"
+            board_path: "boards/ESP8266/SONOFF-BASIC-R2"
 
     steps:
     - name: Checkout repo
