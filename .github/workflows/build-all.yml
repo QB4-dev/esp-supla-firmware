@@ -64,7 +64,7 @@ jobs:
     - name: Setup ESP8266 RTOS SDK & Automated Toolchain
       run: |
         # Clone official ESP8266 RTOS SDK into a local framework folder
-        git clone --recursive --branch master https://github.com $GITHUB_WORKSPACE/ESP8266_RTOS_SDK
+        git clone --recursive --branch master https://github.com/QB4-dev/ESP8266_RTOS_SDK $GITHUB_WORKSPACE/ESP8266_RTOS_SDK
         
         # Install Python dependencies required by the Espressif system framework
         python3 -m pip install -r $GITHUB_WORKSPACE/ESP8266_RTOS_SDK/requirements.txt
