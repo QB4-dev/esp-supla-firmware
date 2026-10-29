@@ -82,7 +82,7 @@ jobs:
         # Move into the specific board directory and compile via legacy Make
         cd ${{ matrix.board_path }}
         make defconfig
-        make EXTRA_CFLAGS="-fno-toplevel-reorder" -j$(nproc)
+        make -j$(nproc)
 
     - name: Upload ESP8266 Binaries
       uses: actions/upload-artifact@v4
