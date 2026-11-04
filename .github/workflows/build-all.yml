@@ -3,9 +3,14 @@ name: Build All Supla Firmware Boards
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch: # Allows manual execution via the UI
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   # --- JOB 1: Build all ESP32 variants using ESP-IDF ---
@@ -14,27 +19,55 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Define paths to each of your ESP32 board directories here
-        board_path: 
-          - 'boards/ESP32/NodeMCU'
+        board_path:
+          - "boards/ESP32/NodeMCU"
+          - "boards/ESP32/ESP32-RELAY-AC-X1"
+          - "boards/ESP32/ESP32-S3-RELAY-6CH"
+          - "boards/ESP32/Sonoff-Mini-R4"
+          - "boards/ESP32/Sonoff-Mini-R4-BLE"
 
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
-        submodules: 'recursive' # Vital for fetching your esp-libsupla component
+        submodules: 'recursive'
+
+    - name: Determine ESP-IDF target
+      id: target
+      env:
+        BOARD_PATH: ${{ matrix.board_path }}
+      shell: bash
+      run: |
+        target=esp32
+        defaults_file="${BOARD_PATH}/sdkconfig.defaults"
+        if [[ -f "$defaults_file" ]]; then
+          configured_target=$(sed -n 's/^CONFIG_IDF_TARGET="\([^"]*\)"/\1/p' "$defaults_file" | head -n1)
+          if [[ -n "$configured_target" ]]; then
+            target="$configured_target"
+          fi
+        fi
+        echo "target=$target" >> "$GITHUB_OUTPUT"
 
     - name: Build ESP32 Firmware
       uses: espressif/esp-idf-ci-action@v1
       with:
-        target: 'esp32'
-        esp_idf_version: 'v4.4' # Matches the older GNU Make/CMake transition era of the repo
+        target: ${{ steps.target.outputs.target }}
+        esp_idf_version: 'v5.5'
         path: ${{ matrix.board_path }}
+
+    - name: Derive board name
+      id: board
+      env:
+        BOARD_PATH: ${{ matrix.board_path }}
+      shell: bash
+      run: |
+        name="${BOARD_PATH#boards/}"
+        echo "name=${name//\//-}" >> "$GITHUB_OUTPUT"
 
     - name: Upload ESP32 Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.board_path }}-binaries
+        name: ${{ steps.board.outputs.name }}
         path: |
           ${{ matrix.board_path }}/build/*.bin
           ${{ matrix.board_path }}/build/bootloader/bootloader.bin
@@ -46,9 +79,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Define paths to each of your ESP8266 board directories here
-        board_path: 
-          - 'boards/ESP8266/NodeMCU'
+        board_path:
+          - "boards/ESP8266/NodeMCU"
+          - "boards/ESP8266/ESP01-DIMMER"
+          - "boards/ESP8266/ESP01-RGBW"
+          - "boards/ESP8266/ESP12F_Relay_X4"
+          - "boards/ESP8266/MP46WiFi"
+          - "boards/ESP8266/SONOFF-BASIC-R2"
 
     steps:
     - name: Checkout repo
@@ -59,33 +96,80 @@ jobs:
     - name: Install Toolchain and SDK Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc git wget make libncurses-dev flex bison gperf python3 python3-pip python3-setuptools python3-serial python3-cryptography python3-future python3-pyparsing python3-click
+        sudo apt-get install -y gcc git wget make libncurses-dev flex bison gperf python3 python3-pip python3-serial
 
-    - name: Setup ESP8266 RTOS SDK & GCC Toolchain
+    - name: Setup ESP8266 RTOS SDK & Automated Toolchain
       run: |
-        # Download and extract the matching Xtensa GCC Toolchain for ESP8266
-        wget https://espressif.com
-        tar -xzf xtensa-lx106-elf-gcc8_4_0-esp-2020r3-linux-amd64.tar.gz
+        # Clone official ESP8266 RTOS SDK into a local framework folder
+        git clone --recursive --branch master https://github.com/QB4-dev/ESP8266_RTOS_SDK $GITHUB_WORKSPACE/ESP8266_RTOS_SDK
         
-        # Clone official ESP8266 RTOS SDK (v3.4 is the stable release matching standard 'make')
-        git clone --recursive --branch master https://github.com/QB4-dev/ESP8266_RTOS_SDK
+        # Install Python dependencies required by the Espressif system framework
+        python3 -m pip install -r $GITHUB_WORKSPACE/ESP8266_RTOS_SDK/requirements.txt
         
-        # Set up Python requirements for the SDK tool
-        python3 -m pip install -r ESP8266_RTOS_SDK/requirements.txt
+        # Use Espressif's native install tool to securely fetch matching binaries 
+        # (This replaces the broken wget step safely)
+        $GITHUB_WORKSPACE/ESP8266_RTOS_SDK/install.sh
 
     - name: Run Build (Make)
       run: |
-        # Export paths into the active shell environment
-        export PATH=$GRID_HOME/xtensa-lx106-elf/bin:$PATH
+        # Export paths directly out of the native Espressif environment layout setup
         export IDF_PATH=$GITHUB_WORKSPACE/ESP8266_RTOS_SDK
+        export PATH=$HOME/.espressif/tools/xtensa-lx106-elf/esp-2020r3-49-gd5524c1-8.4.0/xtensa-lx106-elf/bin:$PATH
         
         # Move into the specific board directory and compile via legacy Make
         cd ${{ matrix.board_path }}
         make defconfig
-        make
+        make -j$(nproc)
+
+    - name: Derive board name
+      id: board
+      env:
+        BOARD_PATH: ${{ matrix.board_path }}
+      shell: bash
+      run: |
+        name="${BOARD_PATH#boards/}"
+        echo "name=${name//\//-}" >> "$GITHUB_OUTPUT"
 
     - name: Upload ESP8266 Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.board_path }}-binaries
+        name: ${{ steps.board.outputs.name }}
         path: ${{ matrix.board_path }}/build/*.bin
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-esp32, build-esp8266]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download all board artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+
+    - name: Package board binaries
+      shell: bash
+      run: |
+        mkdir -p release-assets
+
+        for artifact_dir in dist/*/; do
+          board="${artifact_dir#dist/}"
+          board="${board%/}"
+
+          echo "Packaging ${board}..."
+          (cd dist && zip -qr "../release-assets/${board}.zip" "$board")
+        done
+
+        echo "Release assets:"
+        ls -lh release-assets/
+
+    - name: Create GitHub Release and upload assets
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        gh release create "$GITHUB_REF_NAME" \
+          release-assets/*.zip \
+          --title "$GITHUB_REF_NAME" \
+          --generate-notes \
+          --verify-tag
