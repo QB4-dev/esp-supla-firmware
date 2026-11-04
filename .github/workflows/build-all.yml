@@ -57,6 +57,10 @@ jobs:
         board_path:
           - "boards/ESP8266/NodeMCU"
           - "boards/ESP8266/ESP01-DIMMER"
+          - "boards/ESP8266/ESP01-RGBW"
+          - "boards/ESP8266/ESP12F_Relay_X4"
+          - "boards/ESP8266/MP46WiFi"
+          - "boards/ESP8266/SONOFF-BASIC-R2"
 
     steps:
     - name: Checkout repo
