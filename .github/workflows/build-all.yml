@@ -16,6 +16,10 @@ jobs:
       matrix:
         board_path:
           - "boards/ESP32/NodeMCU"
+          - "boards/ESP32/ESP32-RELAY-AC-X1"
+          - "boards/ESP32/ESP32-S3-RELAY-6CH"
+          - "boards/ESP32/Sonoff-Mini-R4"
+          - "boards/ESP32/Sonoff-Mini-R4-BLE"
 
     steps:
     - name: Checkout repo
