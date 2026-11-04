@@ -3,11 +3,11 @@ name: Build All Supla Firmware Boards
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -137,9 +137,10 @@ jobs:
         path: ${{ matrix.board_path }}/build/*.bin
 
   publish-release:
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-esp32, build-esp8266]
     runs-on: ubuntu-latest
+
     steps:
     - name: Download all board artifacts
       uses: actions/download-artifact@v4
@@ -150,14 +151,25 @@ jobs:
       shell: bash
       run: |
         mkdir -p release-assets
+
         for artifact_dir in dist/*/; do
           board="${artifact_dir#dist/}"
           board="${board%/}"
+
+          echo "Packaging ${board}..."
           (cd dist && zip -qr "../release-assets/${board}.zip" "$board")
         done
 
-    - name: Upload assets to GitHub Release
+        echo "Release assets:"
+        ls -lh release-assets/
+
+    - name: Create GitHub Release and upload assets
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
-      run: gh release upload "$GITHUB_REF_NAME" release-assets/*.zip --clobber
+      run: |
+        gh release create "$GITHUB_REF_NAME" \
+          release-assets/*.zip \
+          --title "$GITHUB_REF_NAME" \
+          --generate-notes \
+          --verify-tag
