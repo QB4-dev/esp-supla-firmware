@@ -27,10 +27,26 @@ jobs:
       with:
         submodules: 'recursive'
 
+    - name: Determine ESP-IDF target
+      id: target
+      env:
+        BOARD_PATH: ${{ matrix.board_path }}
+      shell: bash
+      run: |
+        target=esp32
+        defaults_file="${BOARD_PATH}/sdkconfig.defaults"
+        if [[ -f "$defaults_file" ]]; then
+          configured_target=$(sed -n 's/^CONFIG_IDF_TARGET="\([^"]*\)"/\1/p' "$defaults_file" | head -n1)
+          if [[ -n "$configured_target" ]]; then
+            target="$configured_target"
+          fi
+        fi
+        echo "target=$target" >> "$GITHUB_OUTPUT"
+
     - name: Build ESP32 Firmware
       uses: espressif/esp-idf-ci-action@v1
       with:
-        target: 'esp32'
+        target: ${{ steps.target.outputs.target }}
         esp_idf_version: 'v5.5'
         path: ${{ matrix.board_path }}
 
