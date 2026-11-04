@@ -62,7 +62,7 @@ jobs:
     - name: Upload ESP32 Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.board.outputs.name }}-binaries
+        name: ${{ steps.board.outputs.name }}
         path: |
           ${{ matrix.board_path }}/build/*.bin
           ${{ matrix.board_path }}/build/bootloader/bootloader.bin
@@ -128,5 +128,5 @@ jobs:
     - name: Upload ESP8266 Binaries
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ steps.board.outputs.name }}-binaries
+        name: ${{ steps.board.outputs.name }}
         path: ${{ matrix.board_path }}/build/*.bin
