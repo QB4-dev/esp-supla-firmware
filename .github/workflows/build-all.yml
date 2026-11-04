@@ -134,7 +134,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.board.outputs.name }}
-        path: ${{ matrix.board_path }}/build/*.bin
+        path: |
+          ${{ matrix.board_path }}/build/*.bin
+          ${{ matrix.board_path }}/build/bootloader/bootloader.bin
 
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')
