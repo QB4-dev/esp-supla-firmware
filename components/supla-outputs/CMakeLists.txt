@@ -7,5 +7,5 @@ endif()
 idf_component_register(
     SRCS ${srcs}
     INCLUDE_DIRS "include"
-    REQUIRES esp-libsupla driver esp_timer pca9632 esp-tuya-mcu esp-lampsmart-ble
+    REQUIRES esp-libsupla driver esp_timer freertos pca9632 esp-tuya-mcu esp-lampsmart-ble
 )
