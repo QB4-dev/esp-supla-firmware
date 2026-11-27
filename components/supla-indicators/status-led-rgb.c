@@ -144,6 +144,9 @@ supla_status_led_rgb_t supla_status_led_rgb_init(supla_dev_t                    
     led->strip = (led_strip_t){
         .type = config->type,
         .is_rgbw = false,
+#ifdef LED_STRIP_BRIGHTNESS
+        .brightness = 255,
+#endif
         .length = 1,
         .gpio = config->gpio,
         .channel = config->channel,
