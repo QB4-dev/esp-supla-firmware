@@ -7,5 +7,11 @@
 # please read the ESP-IDF documents if you need to do this.
 #
 
+ifdef CONFIG_IDF_TARGET_ESP8266
+CPPFLAGS += -DCONFIG_IDF_TARGET_ESP8266=1
 COMPONENT_SRCFILES := $(filter-out status-led-rgb.c,$(wildcard *.c))
+else
+COMPONENT_SRCFILES := $(wildcard *.c)
+endif
+
 COMPONENT_ADD_INCLUDEDIRS := include

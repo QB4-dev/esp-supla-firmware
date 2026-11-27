@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <sdkconfig.h>
+
+#if !defined(CONFIG_IDF_TARGET_ESP8266)
+
 #include "include/status-led-rgb.h"
 #include <stdlib.h>
 #include <esp_timer.h>
@@ -246,3 +250,5 @@ int supla_status_led_rgb_delete(supla_status_led_rgb_t led)
         ESP_LOGE(TAG, "Failed to stop LED timer: %s", esp_err_to_name(err));
     return led_rgb_release(data);
 }
+
+#endif /* !CONFIG_IDF_TARGET_ESP8266 */

@@ -7,6 +7,10 @@
 #ifndef _SUPLA_STATUS_LED_RGB_H_
 #define _SUPLA_STATUS_LED_RGB_H_
 
+#include <sdkconfig.h>
+
+#if !defined(CONFIG_IDF_TARGET_ESP8266)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -77,5 +81,7 @@ int supla_status_led_rgb_delete(supla_status_led_rgb_t led);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* !CONFIG_IDF_TARGET_ESP8266 */
 
 #endif /* _SUPLA_STATUS_LED_RGB_H_ */
