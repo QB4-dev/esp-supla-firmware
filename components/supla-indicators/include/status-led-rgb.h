@@ -29,9 +29,9 @@ typedef void *supla_status_led_rgb_t;
  */
 struct status_led_rgb_config {
     gpio_num_t       gpio;       /**< GPIO used to drive status LED output. */
-    led_strip_type_t type;       /**< Type of LED strip. */
-    rmt_channel_t    channel;    /**< RMT channel used by the LED strip. */
-    rgb_t            color;      /**< Color of the RGB LED (green if zero-initialized). */
+    led_strip_type_t type;      /**< Type of LED strip. */
+    rmt_channel_t    channel;   /**< RMT channel used by the LED strip. */
+    rgb_t            color;     /**< Color of the RGB LED (green if zero-initialized). */
     bool             online_set; /**< LED steady state in ONLINE mode (true: ON, false: OFF). */
 };
 

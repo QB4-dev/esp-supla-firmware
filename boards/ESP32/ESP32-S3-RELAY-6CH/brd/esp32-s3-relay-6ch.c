@@ -5,8 +5,8 @@
 
 #include <board.h>
 #include <button.h>
-#include <led_strip.h>
 #include <relay-channel.h>
+#include <status-led-rgb.h>
 
 static const char *TAG = "BSP";
 
@@ -18,12 +18,8 @@ static bsp_t brd_esp32s3_relay_6ch = { .id = "ESP32-S3-RELAY-6CH",
 
 bsp_t *const bsp = &brd_esp32s3_relay_6ch;
 
-static supla_dev_t     *supla_dev;
-static led_strip_t      rgb_led = { .type = LED_STRIP_WS2812,
-                                    .length = 1,
-                                    .gpio = GPIO_NUM_38,
-                                    .brightness = 255 };
-static supla_channel_t *relay_channels[6];
+static supla_status_led_rgb_t status_led;
+static supla_channel_t       *relay_channels[6];
 
 static void button_cb(button_t *btn, button_state_t state)
 {
@@ -48,9 +44,7 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 
 esp_err_t board_early_init(void)
 {
-    led_strip_install();
     ESP_ERROR_CHECK(button_init(&btn));
-    ESP_ERROR_CHECK(led_strip_init(&rgb_led));
     return ESP_OK;
 }
 
@@ -63,6 +57,15 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         .default_function = SUPLA_CHANNELFNC_POWERSWITCH,
         .supported_functions = RELAY_CH_SUPPORTED_FUNC_BITS,
     };
+    struct status_led_rgb_config led_conf = {
+        .gpio = GPIO_NUM_38,
+        .type = LED_STRIP_WS2812,
+        .channel = RMT_CHANNEL_0,
+    };
+
+    status_led = supla_status_led_rgb_init(dev, &led_conf);
+    if (!status_led)
+        return ESP_FAIL;
 
     for (int i = 0; i < sizeof(relay_gpio) / sizeof(relay_gpio[0]); i++) {
         relay_channel_conf.gpio = relay_gpio[i];
@@ -70,20 +73,16 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         supla_dev_add_channel(dev, relay_channels[i]);
     }
 
-    supla_dev = dev; //store pointer
     ESP_LOGI(TAG, "board init completed OK");
     return ESP_OK;
 }
 
 esp_err_t board_on_config_mode_init(void)
 {
-    const rgb_t color = { .r = 0x0f, .g = 0x0f, .b = 0x0f };
-    ESP_ERROR_CHECK(led_strip_fill(&rgb_led, 0, rgb_led.length, color));
     return ESP_OK;
 }
 
 esp_err_t board_on_config_mode_exit(void)
 {
-    ESP_ERROR_CHECK(led_strip_flush(&rgb_led));
     return ESP_OK;
 }
