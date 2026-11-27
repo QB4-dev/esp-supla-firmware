@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <esp_err.h>
 #include <driver/gpio.h>
 
@@ -39,6 +40,24 @@ struct status_led_config {
  * @return Status LED handle on success, or NULL on allocation/init failure.
  */
 supla_status_led_t supla_status_led_init(supla_dev_t *dev, const struct status_led_config *config);
+
+/**
+ * @brief Set a custom GPIO LED blink pattern and stop automatic Supla-state indication.
+ *
+ * @param led Status LED handle returned by supla_status_led_init.
+ * @param on_ms Time in milliseconds to keep the LED on; zero means always off.
+ * @param off_ms Time in milliseconds to keep the LED off; zero means always on.
+ * @return ESP_OK on success.
+ */
+esp_err_t supla_status_led_set(supla_status_led_t led, uint16_t on_ms, uint16_t off_ms);
+
+/**
+ * @brief Resume automatic indication of the current Supla device state.
+ *
+ * @param led Status LED handle returned by supla_status_led_init.
+ * @return ESP_OK on success.
+ */
+esp_err_t supla_status_led_enable_state_indication(supla_status_led_t led);
 
 /**
  * @brief Stop and delete a status LED instance.
