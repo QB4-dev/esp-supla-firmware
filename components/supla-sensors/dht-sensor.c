@@ -21,9 +21,9 @@ struct dht_channel_data {
     gpio_num_t         gpio;
     esp_timer_handle_t timer;
     SemaphoreHandle_t  mutex;
+    bool               has_sample;
     float              humidity;
     float              temperature;
-    bool               has_sample;
 };
 
 esp_err_t supla_channel_dht_get_local(supla_channel_t *ch, float *humid, float *temp)
