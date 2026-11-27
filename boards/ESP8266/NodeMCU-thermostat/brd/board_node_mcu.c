@@ -12,8 +12,6 @@
 #include <board.h>
 #include <button.h>
 #include <status-led.h>
-#include <binary-sensor.h>
-#include <rs-channel.h>
 #include <thermostat-channel.h>
 
 #ifdef CONFIG_BSP_NODE_MCU
