@@ -15,6 +15,7 @@ extern "C" {
 #include <stdint.h>
 #include <esp_err.h>
 #include <driver/gpio.h>
+#include <color.h>
 #include <led_strip.h>
 
 #include <libsupla/device.h>
@@ -28,10 +29,10 @@ typedef void *supla_status_led_rgb_t;
  * @brief Configuration for Supla device status LED driver.
  */
 struct status_led_rgb_config {
-    gpio_num_t       gpio;       /**< GPIO used to drive status LED output. */
-    led_strip_type_t type;      /**< Type of LED strip. */
-    rmt_channel_t    channel;   /**< RMT channel used by the LED strip. */
-    rgb_t            color;     /**< Color of the RGB LED (green if zero-initialized). */
+    gpio_num_t           gpio;         /**< GPIO used to drive status LED output. */
+    led_model_t          type;         /**< Type of LED strip. */
+    led_color_component_format_t pixel_format; /**< Color channel order of the LED. */
+    rgb_t                color;        /**< Color of the RGB LED (green if zero-initialized). */
     bool             online_set; /**< LED steady state in ONLINE mode (true: ON, false: OFF). */
 };
 

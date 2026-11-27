@@ -7,4 +7,5 @@
 # please read the ESP-IDF documents if you need to do this.
 #
 
-COMPONENT_DEPENDS += led_strip
+COMPONENT_SRCFILES := $(filter-out status-led-rgb.c,$(wildcard *.c))
+COMPONENT_ADD_INCLUDEDIRS := include

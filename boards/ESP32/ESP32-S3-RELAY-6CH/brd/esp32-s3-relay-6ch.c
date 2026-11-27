@@ -59,8 +59,9 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     };
     struct status_led_rgb_config led_conf = {
         .gpio = GPIO_NUM_38,
-        .type = LED_STRIP_WS2812,
-        .channel = RMT_CHANNEL_0,
+        .type = LED_MODEL_WS2812,
+        .pixel_format = LED_STRIP_COLOR_COMPONENT_FMT_RGB,
+        .color = { .g = 0xff },
     };
 
     status_led = supla_status_led_rgb_init(dev, &led_conf);

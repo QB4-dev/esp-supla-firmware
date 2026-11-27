@@ -14,7 +14,7 @@ static const char *TAG = "status-led-rgb";
 struct led_rgb_data {
     struct status_led_rgb_config conf;
     supla_dev_t                 *supla_dev;
-    led_strip_t                  strip;
+    led_strip_handle_t           strip;
     rgb_t                        color;
     bool                         on;
     bool                         manual;
@@ -25,11 +25,11 @@ struct led_rgb_data {
 
 static esp_err_t led_rgb_write(struct led_rgb_data *led)
 {
-    rgb_t     color = led->on ? led->color : rgb_from_values(0, 0, 0);
-    esp_err_t err = led_strip_set_pixel(&led->strip, 0, color);
+    rgb_t color = led->on ? led->color : rgb_from_values(0, 0, 0);
+    esp_err_t err = led_strip_set_pixel(led->strip, 0, color.r, color.g, color.b);
     if (err != ESP_OK)
         return err;
-    return led_strip_flush(&led->strip);
+    return led_strip_refresh(led->strip);
 }
 
 static esp_err_t led_rgb_set_state(struct led_rgb_data *led, uint16_t ontime, uint16_t offtime)
@@ -121,9 +121,11 @@ static esp_err_t led_rgb_release(struct led_rgb_data *led)
         }
     }
 
-    err = led_strip_free(&led->strip);
-    if (err != ESP_OK && result == ESP_OK)
-        result = err;
+    if (led->strip) {
+        err = led_strip_del(led->strip);
+        if (err != ESP_OK && result == ESP_OK)
+            result = err;
+    }
     free(led);
     return result;
 }
@@ -141,19 +143,20 @@ supla_status_led_rgb_t supla_status_led_rgb_init(supla_dev_t                    
     led->conf = *config;
     led->supla_dev = dev;
     led->color = rgb_is_zero(config->color) ? rgb_from_values(0, 255, 0) : config->color;
-    led->strip = (led_strip_t){
-        .type = config->type,
-        .is_rgbw = false,
-#ifdef LED_STRIP_BRIGHTNESS
-        .brightness = 255,
-#endif
-        .length = 1,
-        .gpio = config->gpio,
-        .channel = config->channel,
+    led_strip_config_t strip_config = {
+        .strip_gpio_num = config->gpio,
+        .max_leds = 1,
+        .color_component_format = config->pixel_format,
+        .led_model = config->type,
+        .flags.invert_out = false,
+    };
+    led_strip_rmt_config_t rmt_config = {
+        .clk_src = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = 10 * 1000 * 1000,
+        .flags.with_dma = false,
     };
 
-    led_strip_install();
-    esp_err_t err = led_strip_init(&led->strip);
+    esp_err_t err = led_strip_new_rmt_device(&strip_config, &rmt_config, &led->strip);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize RGB LED: %s", esp_err_to_name(err));
         free(led);
