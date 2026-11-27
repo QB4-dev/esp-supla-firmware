@@ -1,4 +1,6 @@
 #
+
+COMPONENT_DEPENDS += esp_http_client json freertos mbedtls
 # Component Makefile
 #
 # This Makefile can be left empty. By default, it will take the sources in the 

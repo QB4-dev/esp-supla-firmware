@@ -149,8 +149,8 @@ void app_main()
 
     ESP_ERROR_CHECK(device_init(dev_event_handler, NULL));
     ESP_ERROR_CHECK(supla_device_init());
-    ESP_ERROR_CHECK(board_supla_init(supla_dev));
     ESP_ERROR_CHECK(wifi_init(net_event_handler));
+    ESP_ERROR_CHECK(board_supla_init(supla_dev));
 
     if (supla_config.email[0] == 0)
         device_init_config();

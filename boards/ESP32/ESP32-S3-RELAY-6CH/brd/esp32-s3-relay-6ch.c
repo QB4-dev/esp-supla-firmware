@@ -5,8 +5,9 @@
 
 #include <board.h>
 #include <button.h>
-#include <relay-channel.h>
 #include <status-led-rgb.h>
+#include <relay-channel.h>
+#include <link-thermometer.h>
 
 static const char *TAG = "BSP";
 
@@ -19,6 +20,7 @@ static bsp_t brd_esp32s3_relay_6ch = { .id = "ESP32-S3-RELAY-6CH",
 bsp_t *const bsp = &brd_esp32s3_relay_6ch;
 
 static supla_status_led_rgb_t status_led;
+static supla_channel_t       *link_thermometer;
 static supla_channel_t       *relay_channels[6];
 
 static void button_cb(button_t *btn, button_state_t state)
@@ -67,6 +69,13 @@ esp_err_t board_supla_init(supla_dev_t *dev)
     status_led = supla_status_led_rgb_init(dev, &led_conf);
     if (!status_led)
         return ESP_FAIL;
+
+    struct link_thermometer_config link_thermometer_conf = {
+        .link = "",
+        .poll_interval_ms = 10000,
+    };
+    link_thermometer = link_thermometer_create(&link_thermometer_conf);
+    supla_dev_add_channel(dev, link_thermometer);
 
     for (int i = 0; i < sizeof(relay_gpio) / sizeof(relay_gpio[0]); i++) {
         relay_channel_conf.gpio = relay_gpio[i];
