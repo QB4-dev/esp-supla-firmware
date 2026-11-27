@@ -27,4 +27,25 @@ struct dht_channel_config {
  */
 supla_channel_t *supla_channel_dht_create(const struct dht_channel_config *conf);
 
+/**
+ * @brief Delete a DHT sensor channel and release its polling timer and data.
+ *
+ * @param ch DHT channel instance to delete.
+ * @return Result from supla_channel_free, or an ESP error on failure.
+ */
+int supla_channel_dht_delete(supla_channel_t *ch);
+
+/**
+ * @brief Get humidity and temperature from the most recent successful poll.
+ *
+ * This returns cached values without reading the sensor. It returns
+ * ESP_ERR_INVALID_STATE until the first successful poll.
+ *
+ * @param ch DHT channel instance.
+ * @param humid Receives relative humidity in percent.
+ * @param temp Receives temperature in degrees Celsius.
+ * @return ESP_OK on success, or an ESP error if no reading is available.
+ */
+esp_err_t supla_channel_dht_get_local(supla_channel_t *ch, float *humid, float *temp);
+
 #endif /* _SUPLA_SENSORS_DHT_H_ */
