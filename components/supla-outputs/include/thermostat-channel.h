@@ -35,6 +35,8 @@ struct thermostat_channel_config {
     supla_channel_t              *aux_thermometer_channel;
     uint8_t                        aux_thermometer_type;
     float                         setpoint_c;
+    float                         min_setpoint_c; /**< Both bounds 0 selects the default 0-40 C range. */
+    float                         max_setpoint_c;
     float    hysteresis_c;     /**< Degrees Celsius; 0 selects the controller default. */
     uint32_t poll_interval_ms; /**< Milliseconds; 0 selects a 10-second interval. */
     bool     initially_enabled;

@@ -22,6 +22,8 @@
 static const char *TAG = "THERMOSTAT";
 #define THERMOSTAT_DEFAULT_POLL_INTERVAL_MS 10000
 #define THERMOSTAT_COUNTDOWN_INTERVAL_MS 1000
+#define THERMOSTAT_DEFAULT_MIN_SETPOINT_C 0.0f
+#define THERMOSTAT_DEFAULT_MAX_SETPOINT_C 40.0f
 #define THERMOSTAT_MIN_VALID_EPOCH 1577836800
 #define THERMOSTAT_NVS_STATE_VERSION 1
 
@@ -64,11 +66,13 @@ struct thermostat_channel_data {
     struct hvac_controller        controller;
     supla_channel_t              *thermometer_channel;
     supla_channel_t              *aux_thermometer_channel;
-    uint8_t                        aux_thermometer_type;
+    uint8_t                       aux_thermometer_type;
     esp_timer_handle_t            timer;
     esp_timer_handle_t            countdown_timer;
     SemaphoreHandle_t             mutex;
     uint32_t                      poll_interval_ms;
+    float                         min_setpoint_c;
+    float                         max_setpoint_c;
     uint32_t                      seconds_left;
     struct thermostat_nvs_state   nvs_state;
     bool                          sensor_error;
@@ -113,7 +117,14 @@ static int schedule_program_id(const TChannelConfig_WeeklySchedule *schedule, in
     return quarter % 2 ? (value >> 4) & 0x0f : value & 0x0f;
 }
 
-static int validate_schedule(const TChannelConfig_WeeklySchedule *schedule)
+static bool thermostat_setpoint_is_valid(float setpoint_c, float min_setpoint_c,
+                                         float max_setpoint_c)
+{
+    return isfinite(setpoint_c) && setpoint_c >= min_setpoint_c && setpoint_c <= max_setpoint_c;
+}
+
+static int validate_schedule(const TChannelConfig_WeeklySchedule *schedule, float min_setpoint_c,
+                             float max_setpoint_c)
 {
     bool         used[SUPLA_WEEKLY_SCHEDULE_PROGRAMS_MAX_SIZE] = {};
     unsigned int quarter;
@@ -135,8 +146,7 @@ static int validate_schedule(const TChannelConfig_WeeklySchedule *schedule)
             return ESP_ERR_INVALID_ARG;
         if (program->Mode == SUPLA_HVAC_MODE_HEAT) {
             float setpoint = program->SetpointTemperatureHeat / 100.0f;
-            if (!isfinite(setpoint) || setpoint < HVAC_CONTROLLER_MIN_SETPOINT_C ||
-                setpoint > HVAC_CONTROLLER_MAX_SETPOINT_C)
+            if (!thermostat_setpoint_is_valid(setpoint, min_setpoint_c, max_setpoint_c))
                 return ESP_ERR_INVALID_ARG;
         }
     }
@@ -197,16 +207,17 @@ static int thermostat_set_countdown(supla_channel_t *channel, struct thermostat_
     return thermostat_publish_countdown(channel, data);
 }
 
-static bool thermostat_nvs_state_is_valid(const struct thermostat_nvs_state *state)
+static bool thermostat_nvs_state_is_valid(const struct thermostat_nvs_state *state,
+                                          float min_setpoint_c, float max_setpoint_c)
 {
     float hysteresis_c;
 
-    if (state->version != THERMOSTAT_NVS_STATE_VERSION || !isfinite(state->manual_setpoint_c) ||
-        state->manual_setpoint_c < HVAC_CONTROLLER_MIN_SETPOINT_C ||
-        state->manual_setpoint_c > HVAC_CONTROLLER_MAX_SETPOINT_C)
+    if (state->version != THERMOSTAT_NVS_STATE_VERSION ||
+        !thermostat_setpoint_is_valid(state->manual_setpoint_c, min_setpoint_c, max_setpoint_c))
         return false;
 
-    if (state->schedule_valid && validate_schedule(&state->schedule) != ESP_OK)
+    if (state->schedule_valid &&
+        validate_schedule(&state->schedule, min_setpoint_c, max_setpoint_c) != ESP_OK)
         return false;
 
     if (state->hvac_config_valid &&
@@ -367,11 +378,11 @@ static void thermostat_countdown_timer_event(void *arg)
 
 static int thermostat_channel_init(supla_channel_t *channel)
 {
-    struct thermostat_channel_data *data = supla_channel_get_data(channel);
-    struct thermostat_nvs_restore  *restore = calloc(1, sizeof(*restore));
-    struct thermostat_nvs_state    *saved_state;
+    struct thermostat_channel_data     *data = supla_channel_get_data(channel);
+    struct thermostat_nvs_restore      *restore = calloc(1, sizeof(*restore));
+    struct thermostat_nvs_state        *saved_state;
     struct thermostat_nvs_state_legacy *legacy_state;
-    esp_err_t                       rc;
+    esp_err_t                           rc;
 
     if (!restore)
         return ESP_ERR_NO_MEM;
@@ -393,13 +404,14 @@ static int thermostat_channel_init(supla_channel_t *channel)
             ESP_LOGI(TAG, "Restored legacy thermostat state; schedule will be seeded if needed");
         }
     }
-    if (rc == ESP_OK && thermostat_nvs_state_is_valid(saved_state)) {
+    if (rc == ESP_OK &&
+        thermostat_nvs_state_is_valid(saved_state, data->min_setpoint_c, data->max_setpoint_c)) {
         data->nvs_state = *saved_state;
         if (saved_state->hvac_config_valid &&
             (saved_state->hvac_config.Temperatures.Index & TEMPERATURE_HISTERESIS)) {
-            float hysteresis_c =
-                saved_state->hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_HYSTERESIS] /
-                100.0f;
+            float hysteresis_c = saved_state->hvac_config.Temperatures
+                                     .Temperature[HVAC_TEMPERATURE_INDEX_HYSTERESIS] /
+                                 100.0f;
             rc = hvac_controller_set_hysteresis(&data->controller, hysteresis_c);
             if (rc != 0) {
                 ESP_LOGE(TAG, "Failed to restore thermostat hysteresis");
@@ -407,7 +419,8 @@ static int thermostat_channel_init(supla_channel_t *channel)
                 return ESP_ERR_INVALID_STATE;
             }
         }
-        rc = hvac_controller_set_heating_setpoint(&data->controller, saved_state->manual_setpoint_c);
+        rc =
+            hvac_controller_set_heating_setpoint(&data->controller, saved_state->manual_setpoint_c);
         if (rc != 0) {
             ESP_LOGE(TAG, "Failed to restore thermostat setpoint");
             free(restore);
@@ -464,8 +477,8 @@ static int thermostat_set_value(supla_channel_t *channel, TSD_SuplaChannelNewVal
 
     if (value->Flags & SUPLA_HVAC_VALUE_FLAG_SETPOINT_TEMP_HEAT_SET) {
         setpoint = value->SetpointTemperatureHeat / 100.0f;
-        rc = hvac_controller_set_heating_setpoint(&data->controller, setpoint);
-        if (rc != 0) {
+        if (!thermostat_setpoint_is_valid(setpoint, data->min_setpoint_c, data->max_setpoint_c) ||
+            hvac_controller_set_heating_setpoint(&data->controller, setpoint) != 0) {
             xSemaphoreGive(data->mutex);
             ESP_LOGE(TAG, "Rejected invalid setpoint: %.2f C", (double)setpoint);
             return ESP_ERR_INVALID_ARG;
@@ -529,8 +542,7 @@ static int thermostat_config_set(supla_channel_t *channel, TSDS_SetChannelConfig
         return SUPLA_RESULTCODE_CHANNEL_CONFLICT;
     }
     if (data->aux_thermometer_channel) {
-        aux_thermometer_number =
-            supla_channel_get_assigned_number(data->aux_thermometer_channel);
+        aux_thermometer_number = supla_channel_get_assigned_number(data->aux_thermometer_channel);
         if (aux_thermometer_number < 0 || aux_thermometer_number == thermometer_number ||
             !is_thermometer_channel(data->aux_thermometer_channel)) {
             ESP_LOGE(TAG, "Auxiliary thermometer must be added before the thermostat");
@@ -556,9 +568,9 @@ static int thermostat_config_set(supla_channel_t *channel, TSDS_SetChannelConfig
     hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_HYSTERESIS] =
         temperature_to_protocol(data->controller.hysteresis_c);
     hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_ROOM_MIN] =
-        temperature_to_protocol(HVAC_CONTROLLER_MIN_SETPOINT_C);
+        temperature_to_protocol(data->min_setpoint_c);
     hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_ROOM_MAX] =
-        temperature_to_protocol(HVAC_CONTROLLER_MAX_SETPOINT_C);
+        temperature_to_protocol(data->max_setpoint_c);
     data->nvs_state.version = THERMOSTAT_NVS_STATE_VERSION;
     data->nvs_state.hvac_config = hvac_config;
     data->nvs_state.hvac_config_valid = true;
@@ -594,6 +606,11 @@ static int thermostat_config_recv(supla_channel_t *channel, TSD_ChannelConfig *c
     memcpy(&hvac_config, config->Config, sizeof(hvac_config));
     if (xSemaphoreTake(data->mutex, portMAX_DELAY) != pdTRUE)
         return ESP_FAIL;
+    hvac_config.Temperatures.Index |= TEMPERATURE_ROOM_MIN | TEMPERATURE_ROOM_MAX;
+    hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_ROOM_MIN] =
+        temperature_to_protocol(data->min_setpoint_c);
+    hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_ROOM_MAX] =
+        temperature_to_protocol(data->max_setpoint_c);
     if (hvac_config.Temperatures.Index & TEMPERATURE_HISTERESIS) {
         rc = hvac_controller_set_hysteresis(
             &data->controller,
@@ -656,7 +673,7 @@ static int thermostat_schedule_recv(supla_channel_t *channel, TSD_ChannelConfig 
         return ESP_ERR_NO_MEM;
 
     memcpy(schedule, config->Config, sizeof(*schedule));
-    rc = validate_schedule(schedule);
+    rc = validate_schedule(schedule, data->min_setpoint_c, data->max_setpoint_c);
     if (rc != ESP_OK) {
         ESP_LOGE(TAG, "Received invalid thermostat schedule");
         free(schedule);
@@ -702,8 +719,13 @@ static int thermostat_schedule_set(supla_channel_t *channel, TSDS_SetChannelConf
         for (unsigned int program = 0; program < SUPLA_WEEKLY_SCHEDULE_PROGRAMS_MAX_SIZE;
              ++program) {
             data->nvs_state.schedule.Program[program].Mode = SUPLA_HVAC_MODE_HEAT;
+            float setpoint_c = (program + 1) * 5 + 5;
+            if (setpoint_c < data->min_setpoint_c)
+                setpoint_c = data->min_setpoint_c;
+            else if (setpoint_c > data->max_setpoint_c)
+                setpoint_c = data->max_setpoint_c;
             data->nvs_state.schedule.Program[program].SetpointTemperatureHeat =
-                (program + 1) * 500 + 500;
+                temperature_to_protocol(setpoint_c);
         }
         data->nvs_state.schedule_valid = true;
     }
@@ -726,7 +748,6 @@ supla_channel_t *supla_thermostat_channel_create(const struct thermostat_channel
         .type = SUPLA_CHANNELTYPE_HVAC,
         .supported_functions = SUPLA_BIT_FUNC_HVAC_THERMOSTAT,
         .default_function = SUPLA_CHANNELFNC_HVAC_THERMOSTAT,
-        .default_caption = "THERMOSTAT",
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE | SUPLA_CHANNEL_FLAG_COUNTDOWN_TIMER_SUPPORTED,
         .on_channel_init = thermostat_channel_init,
         .on_set_value = thermostat_set_value,
@@ -749,10 +770,22 @@ supla_channel_t *supla_thermostat_channel_create(const struct thermostat_channel
         .callback = thermostat_countdown_timer_event,
     };
     uint32_t         poll_interval_ms;
+    float            min_setpoint_c;
+    float            max_setpoint_c;
     supla_channel_t *channel;
 
+    min_setpoint_c = config ? config->min_setpoint_c : 0.0f;
+    max_setpoint_c = config ? config->max_setpoint_c : 0.0f;
+    if (min_setpoint_c == 0.0f && max_setpoint_c == 0.0f) {
+        min_setpoint_c = THERMOSTAT_DEFAULT_MIN_SETPOINT_C;
+        max_setpoint_c = THERMOSTAT_DEFAULT_MAX_SETPOINT_C;
+    }
+
     if (!config || !config->hal.read_temperature_c || !config->hal.set_heating ||
-        !is_thermometer_channel(config->thermometer_channel) || !isfinite(config->setpoint_c) ||
+        !is_thermometer_channel(config->thermometer_channel) || !isfinite(min_setpoint_c) ||
+        !isfinite(max_setpoint_c) || min_setpoint_c < HVAC_CONTROLLER_MIN_SETPOINT_C ||
+        max_setpoint_c > HVAC_CONTROLLER_MAX_SETPOINT_C || min_setpoint_c >= max_setpoint_c ||
+        !thermostat_setpoint_is_valid(config->setpoint_c, min_setpoint_c, max_setpoint_c) ||
         (config->aux_thermometer_channel &&
          (!is_thermometer_channel(config->aux_thermometer_channel) ||
           config->aux_thermometer_channel == config->thermometer_channel ||
@@ -788,6 +821,8 @@ supla_channel_t *supla_thermostat_channel_create(const struct thermostat_channel
     data->aux_thermometer_channel = config->aux_thermometer_channel;
     data->aux_thermometer_type = config->aux_thermometer_type;
     data->hal = config->hal;
+    data->min_setpoint_c = min_setpoint_c;
+    data->max_setpoint_c = max_setpoint_c;
     data->nvs_state.version = THERMOSTAT_NVS_STATE_VERSION;
     data->nvs_state.manual_setpoint_c = config->setpoint_c;
     data->nvs_state.manual_enabled = config->initially_enabled;
@@ -877,6 +912,11 @@ int supla_thermostat_channel_set_setpoint(supla_channel_t *channel, float setpoi
     data = supla_channel_get_data(channel);
     if (!data || xSemaphoreTake(data->mutex, portMAX_DELAY) != pdTRUE)
         return ESP_FAIL;
+
+    if (!thermostat_setpoint_is_valid(setpoint_c, data->min_setpoint_c, data->max_setpoint_c)) {
+        xSemaphoreGive(data->mutex);
+        return ESP_ERR_INVALID_ARG;
+    }
 
     rc = hvac_controller_set_heating_setpoint(&data->controller, setpoint_c);
     if (rc == 0) {
