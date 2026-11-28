@@ -15,9 +15,9 @@
  * Hardware callbacks used by the thermostat controller. Return 0 on success.
  */
 struct thermostat_channel_hal {
-    void *context;
-    int (*read_temperature_c)(void *context, float *temperature_c);
-    int (*set_heating)(void *context, bool enabled);
+    void *user_ctx;
+    int (*read_temperature_c)(void *ctx, float *temperature_c);
+    int (*set_heating)(void *ctx, bool enabled);
 };
 
 /**

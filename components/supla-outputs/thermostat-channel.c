@@ -38,6 +38,18 @@ struct thermostat_nvs_state {
     float                         manual_setpoint_c;
     bool                          hvac_config_valid;
     bool                          schedule_valid;
+    bool                          schedule_seeded;
+    bool                          weekly_schedule;
+    bool                          manual_enabled;
+};
+
+struct thermostat_nvs_state_legacy {
+    uint32_t                      version;
+    TChannelConfig_HVAC           hvac_config;
+    TChannelConfig_WeeklySchedule schedule;
+    float                         manual_setpoint_c;
+    bool                          hvac_config_valid;
+    bool                          schedule_valid;
     bool                          weekly_schedule;
     bool                          manual_enabled;
 };
@@ -140,7 +152,7 @@ static esp_err_t thermostat_nvs_state_store(supla_channel_t                *chan
     return rc;
 }
 
-static int thermostat_publish_countdown(supla_channel_t *channel,
+static int thermostat_publish_countdown(supla_channel_t                *channel,
                                         struct thermostat_channel_data *data)
 {
     TTimerState_ExtendedValue timer_state = {};
@@ -151,8 +163,7 @@ static int thermostat_publish_countdown(supla_channel_t *channel,
                ESP_FAIL;
 }
 
-static int thermostat_set_countdown(supla_channel_t *channel,
-                                    struct thermostat_channel_data *data,
+static int thermostat_set_countdown(supla_channel_t *channel, struct thermostat_channel_data *data,
                                     uint32_t duration_seconds)
 {
     esp_err_t rc = esp_timer_stop(data->countdown_timer);
@@ -205,7 +216,7 @@ static bool thermostat_nvs_state_is_valid(const struct thermostat_nvs_state *sta
 static int thermostat_read_temperature_c(void *context, float *temperature_c)
 {
     struct thermostat_channel_data *data = context;
-    return data->hal.read_temperature_c(data->hal.context, temperature_c);
+    return data->hal.read_temperature_c(data->hal.user_ctx, temperature_c);
 }
 
 static int thermostat_set_output(void *context, enum hvac_controller_output output)
@@ -214,7 +225,7 @@ static int thermostat_set_output(void *context, enum hvac_controller_output outp
 
     if (output == HVAC_CONTROLLER_OUTPUT_COOLING)
         return ESP_ERR_NOT_SUPPORTED;
-    return data->hal.set_heating(data->hal.context, output == HVAC_CONTROLLER_OUTPUT_HEATING);
+    return data->hal.set_heating(data->hal.user_ctx, output == HVAC_CONTROLLER_OUTPUT_HEATING);
 }
 
 static int publish_thermometer_value(supla_channel_t *channel, float temperature_c)
@@ -241,7 +252,7 @@ static int update_channel_value(supla_channel_t *channel, struct thermostat_chan
     int        thermometer_value_rc = SUPLA_RESULT_TRUE;
     int        rc;
 
-    sensor_rc = data->hal.read_temperature_c(data->hal.context, &measured_temperature_c);
+    sensor_rc = data->hal.read_temperature_c(data->hal.user_ctx, &measured_temperature_c);
     data->sensor_error = sensor_rc != 0 || !isfinite(measured_temperature_c);
     data->clock_error = false;
     if (data->nvs_state.weekly_schedule) {
@@ -351,9 +362,24 @@ static int thermostat_channel_init(supla_channel_t *channel)
 {
     struct thermostat_channel_data *data = supla_channel_get_data(channel);
     struct thermostat_nvs_state     saved_state = {};
+    struct thermostat_nvs_state_legacy legacy_state = {};
     esp_err_t                       rc;
 
     rc = supla_esp_nvs_channel_state_restore(channel, &saved_state, sizeof(saved_state));
+    if (rc == ESP_ERR_INVALID_SIZE) {
+        rc = supla_esp_nvs_channel_state_restore(channel, &legacy_state, sizeof(legacy_state));
+        if (rc == ESP_OK && legacy_state.version == THERMOSTAT_NVS_STATE_VERSION) {
+            saved_state.version = legacy_state.version;
+            saved_state.hvac_config = legacy_state.hvac_config;
+            saved_state.schedule = legacy_state.schedule;
+            saved_state.manual_setpoint_c = legacy_state.manual_setpoint_c;
+            saved_state.hvac_config_valid = legacy_state.hvac_config_valid;
+            saved_state.schedule_valid = legacy_state.schedule_valid;
+            saved_state.weekly_schedule = legacy_state.weekly_schedule;
+            saved_state.manual_enabled = legacy_state.manual_enabled;
+            ESP_LOGI(TAG, "Restored legacy thermostat state; schedule will be seeded if needed");
+        }
+    }
     if (rc == ESP_OK && thermostat_nvs_state_is_valid(&saved_state)) {
         data->nvs_state = saved_state;
         if (saved_state.hvac_config_valid &&
@@ -464,8 +490,7 @@ static int thermostat_set_value(supla_channel_t *channel, TSD_SuplaChannelNewVal
     rc = update_channel_value(channel, data);
     if (thermostat_nvs_state_store(channel, data) != ESP_OK && rc == ESP_OK)
         rc = ESP_FAIL;
-    if (thermostat_set_countdown(channel, data, new_value->DurationSec) != ESP_OK &&
-        rc == ESP_OK)
+    if (thermostat_set_countdown(channel, data, new_value->DurationSec) != ESP_OK && rc == ESP_OK)
         rc = ESP_FAIL;
     xSemaphoreGive(data->mutex);
     return rc == ESP_OK ? SUPLA_RESULTCODE_TRUE : rc;
@@ -498,7 +523,7 @@ static int thermostat_config_set(supla_channel_t *channel, TSDS_SetChannelConfig
     hvac_config.Subfunction = SUPLA_HVAC_SUBFUNCTION_HEAT;
     hvac_config.TemperatureSetpointChangeSwitchesToManualMode = 1;
     hvac_config.TemperatureControlType = SUPLA_HVAC_TEMPERATURE_CONTROL_TYPE_ROOM_TEMPERATURE;
-    hvac_config.ParameterFlags.MainThermometerChannelNoReadonly = 1;
+    // hvac_config.ParameterFlags.MainThermometerChannelNoReadonly = 1;
     hvac_config.Temperatures.Index = TEMPERATURE_HISTERESIS | TEMPERATURE_ROOM_MIN |
                                      TEMPERATURE_ROOM_MAX;
     hvac_config.Temperatures.Temperature[HVAC_TEMPERATURE_INDEX_HYSTERESIS] =
@@ -586,6 +611,7 @@ static int thermostat_schedule_recv(supla_channel_t *channel, TSD_ChannelConfig 
         if (xSemaphoreTake(data->mutex, portMAX_DELAY) != pdTRUE)
             return ESP_FAIL;
         data->nvs_state.schedule_valid = false;
+        data->nvs_state.schedule_seeded = true;
         data->nvs_state.weekly_schedule = false;
         rc = thermostat_nvs_state_store(channel, data);
         if (rc == ESP_OK)
@@ -617,12 +643,46 @@ static int thermostat_schedule_recv(supla_channel_t *channel, TSD_ChannelConfig 
     data->nvs_state.version = THERMOSTAT_NVS_STATE_VERSION;
     data->nvs_state.schedule = schedule;
     data->nvs_state.schedule_valid = true;
+    data->nvs_state.schedule_seeded = true;
     ESP_LOGI(TAG, "Thermostat weekly schedule accepted");
     rc = thermostat_nvs_state_store(channel, data);
     if (rc == ESP_OK)
         rc = update_channel_value(channel, data);
     xSemaphoreGive(data->mutex);
     return rc == ESP_OK ? SUPLA_RESULTCODE_TRUE : rc;
+}
+
+static int thermostat_schedule_set(supla_channel_t *channel, TSDS_SetChannelConfig *config)
+{
+    struct thermostat_channel_data *data = supla_channel_get_data(channel);
+    esp_err_t                       rc = ESP_OK;
+
+    if (config->ConfigType != SUPLA_CONFIG_TYPE_WEEKLY_SCHEDULE)
+        return SUPLA_RESULT_FALSE;
+    if (xSemaphoreTake(data->mutex, portMAX_DELAY) != pdTRUE)
+        return ESP_FAIL;
+
+    if (!data->nvs_state.schedule_valid) {
+        memset(&data->nvs_state.schedule, 0, sizeof(data->nvs_state.schedule));
+        for (unsigned int program = 0; program < SUPLA_WEEKLY_SCHEDULE_PROGRAMS_MAX_SIZE;
+             ++program) {
+            data->nvs_state.schedule.Program[program].Mode = SUPLA_HVAC_MODE_HEAT;
+            data->nvs_state.schedule.Program[program].SetpointTemperatureHeat =
+                (program + 1) * 500 + 500;
+        }
+        data->nvs_state.schedule_valid = true;
+    }
+
+    data->nvs_state.version = THERMOSTAT_NVS_STATE_VERSION;
+    config->ConfigSize = sizeof(data->nvs_state.schedule);
+    memcpy(config->Config, &data->nvs_state.schedule, sizeof(data->nvs_state.schedule));
+    rc = thermostat_nvs_state_store(channel, data);
+    xSemaphoreGive(data->mutex);
+    if (rc != ESP_OK)
+        return rc;
+
+    ESP_LOGI(TAG, "Providing default OFF schedule with 10/15/20/25 C programs");
+    return SUPLA_RESULT_TRUE;
 }
 
 supla_channel_t *supla_thermostat_channel_create(const struct thermostat_channel_config *config)
@@ -638,6 +698,7 @@ supla_channel_t *supla_thermostat_channel_create(const struct thermostat_channel
         .on_config_set = thermostat_config_set,
         .on_config_recv = thermostat_config_recv,
         .on_sched_recv = thermostat_schedule_recv,
+        .on_sched_set = thermostat_schedule_set,
     };
     struct thermostat_channel_data *data;
     struct hvac_controller_config   controller_config;
