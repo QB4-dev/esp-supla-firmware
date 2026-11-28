@@ -66,6 +66,7 @@ static void dht_poll(void *arg)
     rc = dht_read_float_data(dht_data->sensor_type, dht_data->gpio, &humidity, &temperature);
     if (rc != ESP_OK) {
         ESP_LOGW(TAG, "Failed to read DHT sensor: %s", esp_err_to_name(rc));
+        dht_data->has_sample = false;
         return;
     }
 
