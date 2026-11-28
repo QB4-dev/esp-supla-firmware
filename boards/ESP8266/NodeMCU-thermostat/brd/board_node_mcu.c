@@ -12,6 +12,7 @@
 #include <board.h>
 #include <button.h>
 #include <status-led.h>
+#include <link-thermometer.h>
 #include <thermostat-channel.h>
 
 #ifdef CONFIG_BSP_NODE_MCU

@@ -1,0 +1,10 @@
+menu "ESP-SUPLA ESP32-S3 6-channel relay board"
+
+config BSP_RELAY_6CH_ENABLE_HVAC
+    bool "Enable configurable HVAC channels"
+    default n
+    help
+        Enable per-channel Relay/Thermostat settings and linked thermometer
+        support. When disabled, the board registers six relay channels only.
+
+endmenu
