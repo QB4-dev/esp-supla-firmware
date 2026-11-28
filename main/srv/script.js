@@ -16,6 +16,12 @@ function reset(e) {
     }
 }
 
+function escapeHtml(value) {
+	return String(value == null ? "" : value).replace(/[&<>"']/g, function(char) {
+		return {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char];
+	});
+}
+
 function suplaStats(){
 	fetch(esp_url+"/supla")
 	.then(r => r.json())
@@ -154,6 +160,9 @@ function getSettingsForm(){
 					case "NUM":
 						html+=`<span class="label-inline">${item.label}</span><input type="number" name="${gr.id}:${item.id}" min=${item.min} max=${item.max} value=${item.val} style="width:150px"><br>`;
 						break;
+					case "TEXT":
+						html+=`<span class="label-inline">${item.label}</span><input type="text" name="${gr.id}:${item.id}" value="${escapeHtml(item.val)}" maxlength="${Math.max(0, item.len - 1)}" style="width:300px"><br>`;
+						break;
 					case "ONEOF":
 						html+=`<span class="label-inline">${item.label}</span><select name="${gr.id}:${item.id}" style="width:160px">`;
 						item.options.forEach((txt, i) => { html+=` <option value=${i} ${item.val==i?"selected":''}>${txt}</option>`;});
@@ -179,7 +188,7 @@ function getSettingsForm(){
 		const form = document.getElementById('brd-form');
 		form.onsubmit = function(e){
 			e.preventDefault();
-			let data = decodeURIComponent(new URLSearchParams(new FormData(this)));
+			let data = new URLSearchParams(new FormData(this)).toString();
 			fetch(esp_url+"/settings?action=set",
 			{
 				method: "POST",

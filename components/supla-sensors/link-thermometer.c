@@ -131,20 +131,28 @@ static void link_thermometer_poll_task(void *arg)
     struct link_thermometer_data *data = arg;
 
     for (;;) {
-        double    temperature;
-        esp_err_t err = fetch_temperature(data->link, &temperature);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "Thermometer request failed: %s", esp_err_to_name(err));
-        } else if (xSemaphoreTake(data->sample_mutex, portMAX_DELAY) != pdTRUE) {
-            ESP_LOGE(TAG, "Failed to lock cached temperature");
-        } else {
-            data->temperature = temperature;
-            data->has_sample = true;
-            xSemaphoreGive(data->sample_mutex);
+        if (data->link) {
+            double    temperature;
+            esp_err_t err = fetch_temperature(data->link, &temperature);
+            if (err != ESP_OK) {
+                ESP_LOGW(TAG, "Thermometer request failed: %s", esp_err_to_name(err));
+                if (xSemaphoreTake(data->sample_mutex, portMAX_DELAY) != pdTRUE) {
+                    ESP_LOGE(TAG, "Failed to lock cached temperature");
+                } else {
+                    data->has_sample = false;
+                    xSemaphoreGive(data->sample_mutex);
+                }
+            } else if (xSemaphoreTake(data->sample_mutex, portMAX_DELAY) != pdTRUE) {
+                ESP_LOGE(TAG, "Failed to lock cached temperature");
+            } else {
+                data->temperature = temperature;
+                data->has_sample = true;
+                xSemaphoreGive(data->sample_mutex);
 
-            int rc = supla_channel_set_double_value(data->channel, temperature);
-            if (rc != SUPLA_RESULT_TRUE)
-                ESP_LOGE(TAG, "Failed to update thermometer channel: %d", rc);
+                int rc = supla_channel_set_double_value(data->channel, temperature);
+                if (rc != SUPLA_RESULT_TRUE)
+                    ESP_LOGE(TAG, "Failed to update thermometer channel: %d", rc);
+            }
         }
 
         if (ulTaskNotifyTake(pdTRUE, data->poll_interval) != 0)
@@ -157,17 +165,18 @@ static void link_thermometer_poll_task(void *arg)
 
 supla_channel_t *link_thermometer_create(const struct link_thermometer_config *config)
 {
+    if (!config)
+        return NULL;
+
+    const char *link = config->link && config->link[0] ? config->link : NULL;
     const supla_channel_config_t channel_config = {
         .type = SUPLA_CHANNELTYPE_THERMOMETER,
         .supported_functions = SUPLA_CHANNELFNC_THERMOMETER,
         .default_function = SUPLA_CHANNELFNC_THERMOMETER,
-        .default_caption = "LINK-THERM",
+        .default_caption = config->default_caption,
         .flags = SUPLA_CHANNEL_FLAG_CHANNELSTATE,
         .sync_values_onchange = 1,
     };
-
-    if (!config || !config->link || !config->link[0])
-        return NULL;
 
     supla_channel_t *channel = supla_channel_create(&channel_config);
     if (!channel)
@@ -179,9 +188,10 @@ supla_channel_t *link_thermometer_create(const struct link_thermometer_config *c
         return NULL;
     }
 
-    data->link = strdup(config->link);
+    data->link = link ? strdup(link) : NULL;
     data->sample_mutex = xSemaphoreCreateMutex();
-    data->task_stopped = xSemaphoreCreateBinary();
+    if (link)
+        data->task_stopped = xSemaphoreCreateBinary();
     data->channel = channel;
 
     uint32_t interval_ms = config->poll_interval_ms ? config->poll_interval_ms :
@@ -190,14 +200,14 @@ supla_channel_t *link_thermometer_create(const struct link_thermometer_config *c
     if (data->poll_interval == 0)
         data->poll_interval = 1;
 
-    if (!data->link || !data->sample_mutex || !data->task_stopped) {
+    if ((link && (!data->link || !data->task_stopped)) || !data->sample_mutex) {
         ESP_LOGE(TAG, "Failed to allocate link thermometer resources");
         goto fail;
     }
 
     supla_channel_set_data(channel, data);
-    if (xTaskCreate(link_thermometer_poll_task, "link-therm", POLL_TASK_STACK_SIZE, data,
-                    tskIDLE_PRIORITY + 1, &data->poll_task) != pdPASS) {
+    if (link && xTaskCreate(link_thermometer_poll_task, "link-therm", POLL_TASK_STACK_SIZE, data,
+                            tskIDLE_PRIORITY + 1, &data->poll_task) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create link thermometer task");
         supla_channel_set_data(channel, NULL);
         goto fail;
@@ -246,13 +256,15 @@ int link_thermometer_delete(supla_channel_t *ch)
     if (!data)
         return ESP_ERR_INVALID_ARG;
 
-    xTaskNotifyGive(data->poll_task);
-    if (xSemaphoreTake(data->task_stopped, portMAX_DELAY) != pdTRUE)
-        return ESP_FAIL;
-
-    vTaskDelete(data->poll_task);
+    if (data->poll_task) {
+        xTaskNotifyGive(data->poll_task);
+        if (xSemaphoreTake(data->task_stopped, portMAX_DELAY) != pdTRUE)
+            return ESP_FAIL;
+        vTaskDelete(data->poll_task);
+    }
     supla_channel_set_data(ch, NULL);
-    vSemaphoreDelete(data->task_stopped);
+    if (data->task_stopped)
+        vSemaphoreDelete(data->task_stopped);
     vSemaphoreDelete(data->sample_mutex);
     free(data->link);
     free(data);

@@ -11,7 +11,22 @@
 
 static const char *TAG = "BSP";
 
-static const settings_group_t board_settings_pack[] = { {} };
+#define LINK_SETTINGS_GR "THERM"
+
+static char therm1_link[256];
+
+static setting_t therm_settings[] = {
+    { .id = "TH1",
+      .label = "Thermometer 1 link",
+      .type = SETTING_TYPE_TEXT,
+      .text = { therm1_link, "", sizeof(therm1_link) } },
+    {} //last element
+};
+
+static const settings_group_t board_settings_pack[] = {
+    { .id = LINK_SETTINGS_GR, .label = "Links", .settings = therm_settings },
+    {} //last element
+};
 
 static bsp_t brd_esp32s3_relay_6ch = { .id = "ESP32-S3-RELAY-6CH",
                                        .ver = "1.0",
@@ -47,11 +62,15 @@ static button_t btn = { .gpio = GPIO_NUM_0, .callback = button_cb };
 esp_err_t board_early_init(void)
 {
     ESP_ERROR_CHECK(button_init(&btn));
+    settings_nvs_read(bsp->settings_pack);
+    settings_pack_print(bsp->settings_pack);
     return ESP_OK;
 }
 
 esp_err_t board_supla_init(supla_dev_t *dev)
 {
+    setting_t *th1_link_setting = settings_pack_find(bsp->settings_pack, LINK_SETTINGS_GR, "TH1");
+
     const gpio_num_t relay_gpio[6] = { GPIO_NUM_1,  GPIO_NUM_2,  GPIO_NUM_41,
                                        GPIO_NUM_42, GPIO_NUM_45, GPIO_NUM_46 };
 
@@ -71,16 +90,33 @@ esp_err_t board_supla_init(supla_dev_t *dev)
         return ESP_FAIL;
 
     struct link_thermometer_config link_thermometer_conf = {
-        .link = "",
+        .default_caption = "LINK-THERM",
+        .link = th1_link_setting ? th1_link_setting->text.val : NULL,
         .poll_interval_ms = 10000,
     };
     link_thermometer = link_thermometer_create(&link_thermometer_conf);
-    supla_dev_add_channel(dev, link_thermometer);
+    if (!link_thermometer) {
+        ESP_LOGE(TAG, "Failed to create link thermometer channel");
+        return ESP_ERR_NO_MEM;
+    }
+    if (supla_dev_add_channel(dev, link_thermometer) != SUPLA_RESULT_TRUE) {
+        ESP_LOGE(TAG, "Failed to add link thermometer channel");
+        link_thermometer_delete(link_thermometer);
+        link_thermometer = NULL;
+        return ESP_FAIL;
+    }
 
     for (int i = 0; i < sizeof(relay_gpio) / sizeof(relay_gpio[0]); i++) {
         relay_channel_conf.gpio = relay_gpio[i];
         relay_channels[i] = supla_relay_channel_create(&relay_channel_conf);
-        supla_dev_add_channel(dev, relay_channels[i]);
+        if (!relay_channels[i]) {
+            ESP_LOGE(TAG, "Failed to create relay channel %d", i);
+            return ESP_ERR_NO_MEM;
+        }
+        if (supla_dev_add_channel(dev, relay_channels[i]) != SUPLA_RESULT_TRUE) {
+            ESP_LOGE(TAG, "Failed to add relay channel %d", i);
+            return ESP_FAIL;
+        }
     }
 
     ESP_LOGI(TAG, "board init completed OK");

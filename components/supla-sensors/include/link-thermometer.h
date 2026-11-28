@@ -15,6 +15,7 @@
  * @brief Configuration for a thermometer reading a SUPLA direct link.
  */
 struct link_thermometer_config {
+    const char *default_caption;  /**< Optional channel caption; NULL leaves it to the server. */
     const char *link;             /**< Direct link URL returning the sensor JSON. */
     uint32_t    poll_interval_ms; /**< Poll interval in milliseconds; 0 uses the default. */
 };
